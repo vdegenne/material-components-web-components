@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - CSS styling options to `mwc-textfield`
 - README for `mwc-drawer`
 - Demo for `mwc-drawer` without a header in the drawer
+- `--mdc-icon-button-size` and `--mdc-icon-size` to `mwc-icon-button`
 
 ### Changed
 
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed issue where slider when resized or scrolled will not respond to touch
   as expected.
 - Fixed issue where `mwc-ripple` would not ripple when parent was a shadow root
+- **BREAKING:VISUAL** Fixed sizing of the `mwc-icon-button` in `mwc-snackbar`
 
 ## [0.10.0] - 2019-10-11
 
