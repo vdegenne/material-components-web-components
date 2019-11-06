@@ -19,10 +19,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   `--mdc-dialog-title-ink-color` renamed to `--mdc-dialog-heading-ink-color` as
   it caused clashes with `HTMLElement.prototype.title`.
 - Updated material dependencies to `4.0.0-canary.735147131.0`.
+- **BREAKING** `mwc-slider` now emits bubbling and composed `input` and `change`
+  events from `MDCSlider:input` and `MDCSlider:change`.
 
 ### Fixed
 - Fixed checkbox ripple visibility when focused while being unchecked.
 - Fixed app content not being expanded inside drawer.
+- Fixed issue where slider when resized or scrolled will not respond to touch
+  as expected.
 
 ## [0.10.0] - 2019-10-11
 
