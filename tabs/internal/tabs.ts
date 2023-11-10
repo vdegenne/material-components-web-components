@@ -7,7 +7,7 @@
 import '../../divider/divider.js';
 
 import {html, isServer, LitElement, PropertyValues} from 'lit';
-import {property, query, queryAssignedElements} from 'lit/decorators.js';
+import {property, queryAssignedElements} from 'lit/decorators.js';
 
 import {
   polyfillARIAMixin,
@@ -111,7 +111,7 @@ export class Tabs extends LitElement {
       }
       else {
         // Revert the value if out-of-bound
-        this.activeTabIndex = changed.get('activeTabIndex')
+        this.activeTabIndex = changed.get('activeTabIndex');
       }
     }
   }
@@ -169,7 +169,7 @@ export class Tabs extends LitElement {
       return;
     }
 
-    this.activeTabIndex = this.tabs.indexOf(tab)
+    this.activeTabIndex = this.tabs.indexOf(tab);
   }
 
   private activateTab(activeTab: Tab) {
@@ -260,7 +260,7 @@ export class Tabs extends LitElement {
     const tabToFocus = tabs[indexToFocus];
     tabToFocus.focus();
     if (this.autoActivate) {
-      this.activateTab(tabToFocus);
+      this.activeTabIndex = indexToFocus;
     } else {
       this.updateFocusableTab(tabToFocus);
     }
