@@ -6,7 +6,7 @@
 
 import '../../divider/divider.js';
 
-import {html, isServer, LitElement} from 'lit';
+import {html, isServer, LitElement, PropertyValues} from 'lit';
 import {property, query, queryAssignedElements} from 'lit/decorators.js';
 
 import {
@@ -72,46 +72,12 @@ export class Tabs extends LitElement {
    *
    * @export
    */
-  get activeTabIndex() {
-    return this.tabs.findIndex((tab) => tab.active);
-  }
-  set activeTabIndex(index: number) {
-    const activateTabAtIndex = () => {
-      const tab = this.tabs[index];
-      // Ignore out-of-bound indices.
-      if (tab) {
-        this.activateTab(tab);
-      }
-    };
-
-    if (!this.slotElement) {
-      // This is needed to support setting the activeTabIndex via a lit property
-      // binding.
-      //
-      // ```ts
-      // html`
-      //   <md-tabs .activeTabIndex=${1}>
-      //     <md-tab>First</md-tab>
-      //     <md-tab>Second</md-tab>
-      //   </md-tabs>
-      // `;
-      // ```
-      //
-      // It's needed since lit's rendering lifecycle is asynchronous, and the
-      // `<slot>` element hasn't rendered, so `tabs` is empty.
-      this.updateComplete.then(activateTabAtIndex);
-      return;
-    }
-
-    activateTabAtIndex();
-  }
+  @property({type: Number, attribute: 'active-tab-index'}) activeTabIndex = 0;
 
   /**
    * Whether or not to automatically select a tab when it is focused.
    */
   @property({type: Boolean, attribute: 'auto-activate'}) autoActivate = false;
-
-  @query('slot') private readonly slotElement!: HTMLSlotElement | null;
 
   private get focusedTab() {
     return this.tabs.find((tab) => tab.matches(':focus-within'));
@@ -130,6 +96,23 @@ export class Tabs extends LitElement {
       this.addEventListener('keydown', this.handleKeydown.bind(this));
       this.addEventListener('keyup', this.handleKeyup.bind(this));
       this.addEventListener('focusout', this.handleFocusout.bind(this));
+    }
+  }
+
+  protected override async updated(changed: PropertyValues) {
+    if (changed.has('activeTabIndex') && this.activeTabIndex >= 0) {
+      if (this.tabs.length === 0) {
+        // Await a micro-task to make sure the tabs has returned.
+        await 0;
+      }
+      const tab = this.tabs[this.activeTabIndex];
+      if (tab) {
+        this.activateTab(tab);
+      }
+      else {
+        // Revert the value if out-of-bound
+        this.activeTabIndex = changed.get('activeTabIndex')
+      }
     }
   }
 
@@ -186,7 +169,7 @@ export class Tabs extends LitElement {
       return;
     }
 
-    this.activateTab(tab);
+    this.activeTabIndex = this.tabs.indexOf(tab)
   }
 
   private activateTab(activeTab: Tab) {
