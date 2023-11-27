@@ -73,7 +73,6 @@
     margin: 0;
     text-align: unset;
     text-decoration: none;
-    width: 100%;
   }
 
   .list-item {
@@ -85,6 +84,7 @@
     outline: none;
     // hide android tap color since we have ripple
     -webkit-tap-highlight-color: transparent;
+    width: 100%;
   }
 
   .list-item.interactive {
