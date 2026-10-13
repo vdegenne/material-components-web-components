@@ -49,9 +49,9 @@ function playgroundExample(eleventyConfig) {
         <summary>
           <md-outlined-icon-button toggle tabindex="-1" aria-hidden="true">
             <md-icon aria-hidden="true">expand_more</md-icon>
-            <md-icon aria-hidden="true" slot="selectedIcon">expand_less</md-icon>
+            <md-icon aria-hidden="true" slot="selected">expand_less</md-icon>
           </md-outlined-icon-button>
-          Expand interactive demo.
+          View interactive demo inline.
         </summary>
         <lit-island on:visible import="/js/hydration-entrypoints/playground-elements.js" class="example" aria-hidden="true">
           <playground-project
@@ -68,6 +68,7 @@ function playgroundExample(eleventyConfig) {
           ><md-circular-progress indeterminate></md-circular-progress></playground-file-editor>
         </lit-island>
       </details>
+      <p><a href="./stories/" target="_blank">Open interactive demo in new tab.</a></p>
     `;
   });
 }

@@ -12,7 +12,7 @@ dirname: button
 
 <!--*
 # Document freshness: For more information, see go/fresh-source.
-freshness: { owner: 'lizmitchell' reviewed: '2023-01-26' }
+freshness: { owner: 'lizmitchell' reviewed: '2023-11-10' }
 tag: 'docType:reference'
 *-->
 
@@ -46,7 +46,7 @@ payment'"
 </catalog-component-header>
 
 *   [Design article](https://m3.material.io/components/buttons) <!-- {.external} -->
-*   API Documentation (*coming soon*)
+*   [API Documentation](#api)
 *   [Source code](https://github.com/material-components/material-web/tree/main/button)
     <!-- {.external} -->
 
@@ -118,7 +118,7 @@ payment'"
         <span>2</span>
       </div>
       <div>
-        <md-tonal-button>Tonal</md-tonal-button>
+        <md-filled-tonal-button>Tonal</md-filled-tonal-button>
         <span>3</span>
       </div>
       <div>
@@ -198,12 +198,12 @@ box](images/button/usage-icon.png "Slot in icons to the appropriate slots")
       style="justify-content:center;gap: 8px;"
       title="Outlined and filled buttons."
       aria-label="An outlined button with the text 'Back' next to a filled button with the text 'Complete'">
-    <md-tonal-button>
+    <md-filled-tonal-button>
       Send
       <svg slot="icon" viewBox="0 0 48 48"><path d="M6 40V8l38 16Zm3-4.65L36.2 24 9 12.5v8.4L21.1 24 9 27Zm0 0V12.5 27Z"/></svg>
-    </md-tonal-button>
+    </md-filled-tonal-button>
 
-    <md-text-button trailingicon>
+    <md-text-button trailing-icon>
       Open
       <svg slot="icon" viewBox="0 0 48 48"><path d="M9 42q-1.2 0-2.1-.9Q6 40.2 6 39V9q0-1.2.9-2.1Q7.8 6 9 6h13.95v3H9v30h30V25.05h3V39q0 1.2-.9 2.1-.9.9-2.1.9Zm10.1-10.95L17 28.9 36.9 9H25.95V6H42v16.05h-3v-10.9Z"/></svg>
     </md-text-button>
@@ -215,12 +215,12 @@ box](images/button/usage-icon.png "Slot in icons to the appropriate slots")
 <!-- catalog-only-end -->
 
 ```html
-<md-tonal-button>
+<md-filled-tonal-button>
   Send
   <svg slot="icon" viewBox="0 0 48 48"><path d="M6 40V8l38 16Zm3-4.65L36.2 24 9 12.5v8.4L21.1 24 9 27Zm0 0V12.5 27Z"/></svg>
-</md-tonal-button>
+</md-filled-tonal-button>
 
-<md-text-button trailingicon>
+<md-text-button trailing-icon>
   Open
   <svg slot="icon" viewBox="0 0 48 48"><path d="M9 42q-1.2 0-2.1-.9Q6 40.2 6 39V9q0-1.2.9-2.1Q7.8 6 9 6h13.95v3H9v30h30V25.05h3V39q0 1.2-.9 2.1-.9.9-2.1.9Zm10.1-10.95L17 28.9 36.9 9H25.95V6H42v16.05h-3v-10.9Z"/></svg>
 </md-text-button>
@@ -301,7 +301,7 @@ final actions that complete a flow, like Save, Join now, or Confirm.
 
 ## Filled tonal button
 
-<!-- go/md-tonal-button -->
+<!-- go/md-filled-tonal-button -->
 
 A
 [filled tonal button](https://m3.material.io/components/buttons/guidelines#07a1577b-aaf5-4824-a698-03526421058b)<!-- {.external} -->
@@ -322,7 +322,7 @@ than an outline would give, such as "Next" in an onboarding flow.
   <figure
       style="justify-content:center;align-items:center;"
       aria-label="A tonal button.">
-    <md-tonal-button>Tonal</md-tonal-button>
+    <md-filled-tonal-button>Tonal</md-filled-tonal-button>
   </figure>
 </div>
 
@@ -331,7 +331,7 @@ than an outline would give, such as "Next" in an onboarding flow.
 <!-- catalog-only-end -->
 
 ```html
-<md-tonal-button>Tonal</md-tonal-button>
+<md-filled-tonal-button>Tonal</md-filled-tonal-button>
 ```
 
 ## Outlined button
@@ -402,17 +402,17 @@ options.
 
 ## Theming
 
-Button supports [Material theming](../theming.md) and can be customized in terms
-of color, typography, and shape.
+Button supports [Material theming](../theming/README.md) and can be customized
+in terms of color, typography, and shape.
 
 ### Elevated button tokens
 
 Token                                   | Default value
---------------------------------------- | -------------------------------
+--------------------------------------- | -------------------------------------
 `--md-elevated-button-container-color`  | `--md-sys-color-surface`
 `--md-elevated-button-container-shape`  | `9999px`
 `--md-elevated-button-label-text-color` | `--md-sys-color-on-surface`
-`--md-elevated-button-label-text-type`  | `500 0.875rem/1.25rem "Roboto"`
+`--md-elevated-button-label-text-font`  | `--md-sys-typescale-label-large-font`
 
 *   [All tokens](https://github.com/material-components/material-web/blob/main/tokens/_md-comp-elevated-button.scss)
     <!-- {.external} -->
@@ -438,7 +438,7 @@ Token                                   | Default value
       .styled-example {
         background-color: white;
         --md-elevated-button-container-shape: 0px;
-        --md-elevated-button-label-text-type: 500 0.875rem/1.25rem system-ui;
+        --md-elevated-button-label-text-font: system-ui;
         --md-sys-color-surface-container-low: #FAFDFC;
         --md-sys-color-primary: #191C1C;
       }
@@ -456,7 +456,7 @@ Token                                   | Default value
 <style>
 :root {
   --md-elevated-button-container-shape: 0px;
-  --md-elevated-button-label-text-type: 500 0.875rem/1.25rem system-ui;
+  --md-elevated-button-label-text-font: system-ui;
   --md-sys-color-surface-container-low: #FAFDFC;
   --md-sys-color-primary: #191C1C;
 }
@@ -468,11 +468,11 @@ Token                                   | Default value
 ### Filled button tokens
 
 Token                                 | Default value
-------------------------------------- | -------------------------------
+------------------------------------- | -------------------------------------
 `--md-filled-button-container-color`  | `--md-sys-color-primary`
 `--md-filled-button-container-shape`  | `9999px`
 `--md-filled-button-label-text-color` | `--md-sys-color-on-primary`
-`--md-filled-button-label-text-type`  | `500 0.875rem/1.25rem "Roboto"`
+`--md-filled-button-label-text-font`  | `--md-sys-typescale-label-large-font`
 
 *   [All tokens](https://github.com/material-components/material-web/blob/main/tokens/_md-comp-filled-button.scss)
     <!-- {.external} -->
@@ -498,7 +498,7 @@ Token                                 | Default value
       .styled-example {
         background-color: white;
         --md-filled-button-container-shape: 0px;
-        --md-filled-button-label-text-type: 500 0.875rem/1.25rem system-ui;
+        --md-filled-button-label-text-font: system-ui;
         --md-sys-color-primary: #006A6A;
         --md-sys-color-on-primary: #FFFFFF;
       }
@@ -516,7 +516,7 @@ Token                                 | Default value
 <style>
 :root {
   --md-filled-button-container-shape: 0px;
-  --md-filled-button-label-text-type: 500 0.875rem/1.25rem system-ui;
+  --md-filled-button-label-text-font: system-ui;
   --md-sys-color-primary: #006A6A;
   --md-sys-color-on-primary: #FFFFFF;
 }
@@ -527,12 +527,12 @@ Token                                 | Default value
 
 ### Filled tonal button tokens
 
-Token                                | Default value
------------------------------------- | ---------------------------------------
-`--md-tonal-button-container-color`  | `--md-sys-color-secondary-container`
-`--md-tonal-button-container-shape`  | `9999px`
-`--md-tonal-button-label-text-color` | `--md-sys-color-on-secondary-container`
-`--md-tonal-button-label-text-type`  | `500 0.875rem/1.25rem "Roboto"`
+Token                                       | Default value
+------------------------------------------- | -------------
+`--md-filled-tonal-button-container-color`  | `--md-sys-color-secondary-container`
+`--md-filled-tonal-button-container-shape`  | `9999px`
+`--md-filled-tonal-button-label-text-color` | `--md-sys-color-on-secondary-container`
+`--md-filled-tonal-button-label-text-font`  | `--md-sys-typescale-label-large-font`
 
 *   [All tokens](https://github.com/material-components/material-web/blob/main/tokens/_md-comp-filled-tonal-button.scss)
     <!-- {.external} -->
@@ -557,14 +557,14 @@ Token                                | Default value
     <style>
       .styled-example {
         background-color: white;
-        --md-tonal-button-container-shape: 0px;
-        --md-tonal-button-label-text-type: 500 0.875rem/1.25rem system-ui;
+        --md-filled-tonal-button-container-shape: 0px;
+        --md-filled-tonal-button-label-text-font: system-ui;
         --md-sys-color-secondary-container: #CCE8E7;
         --md-sys-color-on-secondary-container: #051F1F;
       }
     </style>
 
-    <md-tonal-button>Tonal</md-tonal-button>
+    <md-filled-tonal-button>Tonal</md-filled-tonal-button>
   </figure>
 </div>
 
@@ -575,24 +575,24 @@ Token                                | Default value
 ```html
 <style>
 :root {
-  --md-tonal-button-container-shape: 0px;
-  --md-tonal-button-label-text-type: 500 0.875rem/1.25rem system-ui;
+  --md-filled-tonal-button-container-shape: 0px;
+  --md-filled-tonal-button-label-text-font: system-ui;
   --md-sys-color-secondary-container: #CCE8E7;
   --md-sys-color-on-secondary-container: #051F1F;
 }
 </style>
 
-<md-tonal-button>Tonal</md-tonal-button>
+<md-filled-tonal-button>Tonal</md-filled-tonal-button>
 ```
 
 ### Outlined button tokens
 
 Token                                   | Default value
---------------------------------------- | -------------------------------
+--------------------------------------- | -------------------------------------
 `--md-outlined-button-outline-color`    | `--md-sys-color-outline`
 `--md-outlined-button-container-shape`  | `9999px`
 `--md-outlined-button-label-text-color` | `--md-sys-color-primary`
-`--md-outlined-button-label-text-type`  | `500 0.875rem/1.25rem "Roboto"`
+`--md-outlined-button-label-text-font`  | `--md-sys-typescale-label-large-font`
 
 *   [All tokens](https://github.com/material-components/material-web/blob/main/tokens/_md-comp-outlined-button.scss)
     <!-- {.external} -->
@@ -618,7 +618,7 @@ Token                                   | Default value
       .styled-example {
         background-color: white;
         --md-outlined-button-container-shape: 0px;
-        --md-outlined-button-label-text-type: 500 0.875rem/1.25rem system-ui;
+        --md-outlined-button-label-text-font: system-ui;
         --md-sys-color-primary: #006A6A;
         --md-sys-color-outline: #6F7979;
       }
@@ -636,7 +636,7 @@ Token                                   | Default value
 <style>
 :root {
   --md-outlined-button-container-shape: 0px;
-  --md-outlined-button-label-text-type: 500 0.875rem/1.25rem system-ui;
+  --md-outlined-button-label-text-font: system-ui;
   --md-sys-color-primary: #006A6A;
   --md-sys-color-outline: #6F7979;
 }
@@ -648,9 +648,9 @@ Token                                   | Default value
 ### Text button tokens
 
 Token                               | Default value
------------------------------------ | -------------------------------
+----------------------------------- | -------------------------------------
 `--md-text-button-label-text-color` | `--md-sys-color-primary`
-`--md-text-button-label-text-type`  | `500 0.875rem/1.25rem "Roboto"`
+`--md-text-button-label-text-font`  | `--md-sys-typescale-label-large-font`
 
 *   [All tokens](https://github.com/material-components/material-web/blob/main/tokens/_md-comp-text-button.scss)
     <!-- {.external} -->
@@ -675,7 +675,7 @@ Token                               | Default value
     <style>
       .styled-example {
         background-color: white;
-        --md-text-button-label-text-type: 500 0.875rem/1.25rem system-ui;
+        --md-text-button-label-text-font: system-ui;
         --md-sys-color-primary: #006A6A;
       }
     </style>
@@ -691,10 +691,117 @@ Token                               | Default value
 ```html
 <style>
 :root {
-  --md-text-button-label-text-type: 500 0.875rem/1.25rem system-ui;
+  --md-text-button-label-text-font: system-ui;
   --md-sys-color-primary: #006A6A;
 }
 </style>
 
 <md-text-button>Text</md-text-button>
 ```
+
+<!-- auto-generated API docs start -->
+
+## API
+
+
+### MdElevatedButton <code>&lt;md-elevated-button&gt;</code>
+
+#### Properties
+
+<!-- mdformat off(autogenerated might break rendering in catalog) -->
+
+Property | Attribute | Type | Default | Description
+--- | --- | --- | --- | ---
+`disabled` | `disabled` | `boolean` | `false` | Whether or not the button is disabled.
+`href` | `href` | `string` | `''` | The URL that the link button points to.
+`target` | `target` | `string` | `''` | Where to display the linked `href` URL for a link button. Common options include `_blank` to open in a new tab.
+`trailingIcon` | `trailing-icon` | `boolean` | `false` | Whether to render the icon at the inline end of the label rather than the inline start.<br>_Note:_ Link buttons cannot have trailing icons.
+`hasIcon` | `has-icon` | `boolean` | `false` | Whether to display the icon or not.
+`type` | `type` | `string` | `'submit'` |
+`value` | `value` | `string` | `''` |
+`name` |  | `string` | `undefined` |
+`form` |  | `HTMLFormElement` | `undefined` |
+
+<!-- mdformat on(autogenerated might break rendering in catalog) -->
+
+### MdFilledButton <code>&lt;md-filled-button&gt;</code>
+
+#### Properties
+
+<!-- mdformat off(autogenerated might break rendering in catalog) -->
+
+Property | Attribute | Type | Default | Description
+--- | --- | --- | --- | ---
+`disabled` | `disabled` | `boolean` | `false` | Whether or not the button is disabled.
+`href` | `href` | `string` | `''` | The URL that the link button points to.
+`target` | `target` | `string` | `''` | Where to display the linked `href` URL for a link button. Common options include `_blank` to open in a new tab.
+`trailingIcon` | `trailing-icon` | `boolean` | `false` | Whether to render the icon at the inline end of the label rather than the inline start.<br>_Note:_ Link buttons cannot have trailing icons.
+`hasIcon` | `has-icon` | `boolean` | `false` | Whether to display the icon or not.
+`type` | `type` | `string` | `'submit'` |
+`value` | `value` | `string` | `''` |
+`name` |  | `string` | `undefined` |
+`form` |  | `HTMLFormElement` | `undefined` |
+
+<!-- mdformat on(autogenerated might break rendering in catalog) -->
+
+### MdFilledTonalButton <code>&lt;md-filled-tonal-button&gt;</code>
+
+#### Properties
+
+<!-- mdformat off(autogenerated might break rendering in catalog) -->
+
+Property | Attribute | Type | Default | Description
+--- | --- | --- | --- | ---
+`disabled` | `disabled` | `boolean` | `false` | Whether or not the button is disabled.
+`href` | `href` | `string` | `''` | The URL that the link button points to.
+`target` | `target` | `string` | `''` | Where to display the linked `href` URL for a link button. Common options include `_blank` to open in a new tab.
+`trailingIcon` | `trailing-icon` | `boolean` | `false` | Whether to render the icon at the inline end of the label rather than the inline start.<br>_Note:_ Link buttons cannot have trailing icons.
+`hasIcon` | `has-icon` | `boolean` | `false` | Whether to display the icon or not.
+`type` | `type` | `string` | `'submit'` |
+`value` | `value` | `string` | `''` |
+`name` |  | `string` | `undefined` |
+`form` |  | `HTMLFormElement` | `undefined` |
+
+<!-- mdformat on(autogenerated might break rendering in catalog) -->
+
+### MdOutlinedButton <code>&lt;md-outlined-button&gt;</code>
+
+#### Properties
+
+<!-- mdformat off(autogenerated might break rendering in catalog) -->
+
+Property | Attribute | Type | Default | Description
+--- | --- | --- | --- | ---
+`disabled` | `disabled` | `boolean` | `false` | Whether or not the button is disabled.
+`href` | `href` | `string` | `''` | The URL that the link button points to.
+`target` | `target` | `string` | `''` | Where to display the linked `href` URL for a link button. Common options include `_blank` to open in a new tab.
+`trailingIcon` | `trailing-icon` | `boolean` | `false` | Whether to render the icon at the inline end of the label rather than the inline start.<br>_Note:_ Link buttons cannot have trailing icons.
+`hasIcon` | `has-icon` | `boolean` | `false` | Whether to display the icon or not.
+`type` | `type` | `string` | `'submit'` |
+`value` | `value` | `string` | `''` |
+`name` |  | `string` | `undefined` |
+`form` |  | `HTMLFormElement` | `undefined` |
+
+<!-- mdformat on(autogenerated might break rendering in catalog) -->
+
+### MdTextButton <code>&lt;md-text-button&gt;</code>
+
+#### Properties
+
+<!-- mdformat off(autogenerated might break rendering in catalog) -->
+
+Property | Attribute | Type | Default | Description
+--- | --- | --- | --- | ---
+`disabled` | `disabled` | `boolean` | `false` | Whether or not the button is disabled.
+`href` | `href` | `string` | `''` | The URL that the link button points to.
+`target` | `target` | `string` | `''` | Where to display the linked `href` URL for a link button. Common options include `_blank` to open in a new tab.
+`trailingIcon` | `trailing-icon` | `boolean` | `false` | Whether to render the icon at the inline end of the label rather than the inline start.<br>_Note:_ Link buttons cannot have trailing icons.
+`hasIcon` | `has-icon` | `boolean` | `false` | Whether to display the icon or not.
+`type` | `type` | `string` | `'submit'` |
+`value` | `value` | `string` | `''` |
+`name` |  | `string` | `undefined` |
+`form` |  | `HTMLFormElement` | `undefined` |
+
+<!-- mdformat on(autogenerated might break rendering in catalog) -->
+
+<!-- auto-generated API docs end -->

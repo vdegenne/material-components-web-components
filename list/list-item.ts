@@ -6,11 +6,10 @@
 
 import {customElement} from 'lit/decorators.js';
 
-import {styles as forcedColors} from './internal/listitem/forced-colors-styles.css.js';
-import {ListItemOnly as ListItem} from './internal/listitem/list-item-only.js';
+import {ListItemEl as ListItem} from './internal/listitem/list-item.js';
 import {styles} from './internal/listitem/list-item-styles.css.js';
 
-export {ListItemRole} from './internal/listitem/list-item.js';
+export {type ListItemType} from './internal/listitem/list-item.js';
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -36,20 +35,18 @@ declare global {
  *   item in a collection and act on it.
  * - Lists should present icons, text, and actions in a consistent format.
  *
- * Acceptable slottable child variants are:
+ * Acceptable slot child variants are:
  *
- * - `video[data-variant=video]`
- * - `img,span[data-variant=avatar]`
- * - `img[data-variant=image]`
- * - `md-icon[data-variant=icon]`
+ * - `img[slot=end]`
+ * - `img[slot=start]`
  *
  *  @example
  * ```html
  * <md-list-item
  *     headline="User Name"
  *     supportingText="user@name.com">
- *   <md-icon data-variant="icon" slot="start">account_circle</md-icon>
- *   <md-icon data-variant="icon" slot="end">check</md-icon>
+ *   <md-icon slot="start">account_circle</md-icon>
+ *   <md-icon slot="end">check</md-icon>
  * </md-list-item>
  * ```
  *
@@ -60,5 +57,5 @@ declare global {
  */
 @customElement('md-list-item')
 export class MdListItem extends ListItem {
-  static override styles = [styles, forcedColors];
+  static override styles = [styles];
 }

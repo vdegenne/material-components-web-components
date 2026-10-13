@@ -4,22 +4,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import '@material/web/labs/segmentedbuttonset/outlined-segmented-button-set.js';
-import '@material/web/labs/segmentedbutton/outlined-segmented-button.js';
-import '@material/web/icon/icon.js';
-import './hct-slider.js';
-import './copy-code-button.js';
 import '@material/web/focus/md-focus-ring.js';
+import '@material/web/icon/icon.js';
+import '@material/web/labs/segmentedbutton/outlined-segmented-button.js';
+import '@material/web/labs/segmentedbuttonset/outlined-segmented-button-set.js';
+import './copy-code-button.js';
+import './hct-slider.js';
 
 import type {MdOutlinedSegmentedButton} from '@material/web/labs/segmentedbutton/outlined-segmented-button.js';
 import {css, html, LitElement} from 'lit';
 import {customElement, query, queryAll, state} from 'lit/decorators.js';
 import {live} from 'lit/directives/live.js';
 
-import {ChangeColorEvent, ChangeDarkModeEvent,} from '../types/color-events.js';
+import {ChangeColorEvent, ChangeDarkModeEvent} from '../types/color-events.js';
 import {hctFromHex, hexFromHct} from '../utils/material-color-helpers.js';
-import {getCurrentMode, getCurrentSeedColor, getCurrentThemeString} from '../utils/theme.js';
 import type {ColorMode} from '../utils/theme.js';
+import {
+  getCurrentMode,
+  getCurrentSeedColor,
+  getCurrentThemeString,
+} from '../utils/theme.js';
 
 import type {HCTSlider} from './hct-slider.js';
 
@@ -29,10 +33,15 @@ import type {HCTSlider} from './hct-slider.js';
  */
 @customElement('theme-changer')
 export class ThemeChanger extends LitElement {
+  static override shadowRootOptions = {
+    ...LitElement.shadowRootOptions,
+    delegatesFocus: true,
+  };
+
   /**
    * The currently selected color mode.
    */
-  @state() selectedColorMode: ColorMode|null = null;
+  @state() selectedColorMode: ColorMode | null = null;
 
   /**
    * The currently selected hex color.
@@ -62,16 +71,15 @@ export class ThemeChanger extends LitElement {
 
   render() {
     return html`
-      <h2>
-        Theme Controls
+      <div id="head-wrapper">
+        <h2> Theme Controls </h2>
         <copy-code-button
-            button-title="Copy current theme to clipboard"
-            label="Copy current theme"
-            .getCopyText=${getCurrentThemeString}>
+          button-title="Copy current theme to clipboard"
+          label="Copy current theme"
+          .getCopyText=${getCurrentThemeString}>
         </copy-code-button>
-      </h2>
-      ${this.renderHexPicker()}
-      ${this.renderHctPicker()}
+      </div>
+      ${this.renderHexPicker()} ${this.renderHctPicker()}
       ${this.renderColorModePicker()}
     `;
   }
@@ -81,7 +89,7 @@ export class ThemeChanger extends LitElement {
    */
   protected renderHexPicker() {
     return html`<div>
-      <label id="hex">
+      <label id="hex" for="color-input">
         <span class="label">Hex Source Color</span>
         <span class="input-wrapper">
           <div class="overflow">
@@ -89,8 +97,7 @@ export class ThemeChanger extends LitElement {
               id="color-input"
               @input=${this.onHexPickerInput}
               type="color"
-              .value=${live(this.hexColor)}
-            />
+              .value=${live(this.hexColor)} />
           </div>
           <md-focus-ring for="color-input"></md-focus-ring>
         </span>
@@ -104,27 +111,24 @@ export class ThemeChanger extends LitElement {
   private renderHctPicker() {
     return html`<div class="sliders">
       <hct-slider
-          .value=${live(this.hue)}
-          type="hue"
-          label="Hue"
-          max="360"
-          @input=${this.onSliderInput}
-      ></hct-slider>
+        .value=${live(this.hue)}
+        type="hue"
+        label="Hue"
+        max="360"
+        @input=${this.onSliderInput}></hct-slider>
       <hct-slider
-          .value=${live(this.chroma)}
-          .color=${this.hexColor}
-          type="chroma"
-          label="Chroma"
-          max="150"
-          @input=${this.onSliderInput}
-      ></hct-slider>
+        .value=${live(this.chroma)}
+        .color=${this.hexColor}
+        type="chroma"
+        label="Chroma"
+        max="150"
+        @input=${this.onSliderInput}></hct-slider>
       <hct-slider
-          .value=${live(this.tone)}
-          type="tone"
-          label="Tone"
-          max="100"
-          @input=${this.onSliderInput}
-      ></hct-slider>
+        .value=${live(this.tone)}
+        type="tone"
+        label="Tone"
+        max="100"
+        @input=${this.onSliderInput}></hct-slider>
     </div>`;
   }
 
@@ -133,8 +137,8 @@ export class ThemeChanger extends LitElement {
    */
   private renderColorModePicker() {
     return html`<md-outlined-segmented-button-set
-        @segmented-button-set-selection=${this.onColorModeSelection}
-    >
+      @segmented-button-set-selection=${this.onColorModeSelection}
+      aria-label="Color mode">
       ${this.renderModeButton('dark', 'dark_mode')}
       ${this.renderModeButton('auto', 'brightness_medium')}
       ${this.renderModeButton('light', 'light_mode')}
@@ -152,8 +156,8 @@ export class ThemeChanger extends LitElement {
     return html`<md-outlined-segmented-button
       data-value=${mode}
       title=${mode}
-      .selected=${this.selectedColorMode === mode}
-    >
+      aria-label="${mode} color scheme"
+      .selected=${this.selectedColorMode === mode}>
       <md-icon slot="icon">${icon}</md-icon>
     </md-outlined-segmented-button>`;
   }
@@ -199,9 +203,13 @@ export class ThemeChanger extends LitElement {
     this.updateHctFromHex(this.hexColor);
   }
 
-  private onColorModeSelection(e: CustomEvent<{
-    button: MdOutlinedSegmentedButton; selected: boolean; index: number;
-  }>) {
+  private onColorModeSelection(
+    e: CustomEvent<{
+      button: MdOutlinedSegmentedButton;
+      selected: boolean;
+      index: number;
+    }>,
+  ) {
     const {button} = e.detail;
     const value = button.dataset.value as ColorMode;
     this.selectedColorMode = value;
@@ -227,6 +235,11 @@ export class ThemeChanger extends LitElement {
 
     :host > *:last-child {
       margin-block-end: 0;
+    }
+
+    #head-wrapper {
+      display: flex;
+      align-items: space-between;
     }
 
     input {
@@ -259,7 +272,8 @@ export class ThemeChanger extends LitElement {
 
     copy-code-button {
       --md-icon-button-icon-size: var(--_copy-button-icon-size);
-      --md-icon-button-state-layer-size: var(--_copy-button-button-size);
+      --md-icon-button-state-layer-width: var(--_copy-button-button-size);
+      --md-icon-button-state-layer-height: var(--_copy-button-button-size);
       /*
        * Center the copy icon with the h2 text
        * -(icon button size - intrinsic icon size) / 2

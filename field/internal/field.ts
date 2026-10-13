@@ -4,23 +4,30 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {html, LitElement, nothing, PropertyValues, render, TemplateResult} from 'lit';
+import {
+  html,
+  LitElement,
+  nothing,
+  PropertyValues,
+  render,
+  TemplateResult,
+} from 'lit';
 import {property, query, queryAssignedElements, state} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 
 import {EASING} from '../../internal/motion/animation.js';
-import {SurfacePositionTarget} from '../../menu/internal/surfacePositionController.js';
 
 /**
  * A field component.
  */
-export class Field extends LitElement implements SurfacePositionTarget {
+export class Field extends LitElement {
   @property({type: Boolean}) disabled = false;
   @property({type: Boolean}) error = false;
   @property({type: Boolean}) focused = false;
   @property() label = '';
   @property({type: Boolean}) populated = false;
   @property({type: Boolean}) required = false;
+  @property({type: Boolean}) resizable = false;
   @property({attribute: 'supporting-text'}) supportingText = '';
   @property({attribute: 'error-text'}) errorText = '';
   @property({type: Number}) count = -1;
@@ -40,11 +47,16 @@ export class Field extends LitElement implements SurfacePositionTarget {
   private readonly slottedAriaDescribedBy!: HTMLElement[];
 
   private get counterText() {
-    if (this.count < 0 || this.max < 0) {
+    // Count and max are typed as number, but can be set to null when Lit removes
+    // their attributes. These getters coerce back to a number for calculations.
+    const countAsNumber = this.count ?? -1;
+    const maxAsNumber = this.max ?? -1;
+    // Counter does not show if count is negative, or max is negative or 0.
+    if (countAsNumber < 0 || maxAsNumber <= 0) {
       return '';
     }
 
-    return `${this.count} / ${this.max}`;
+    return `${countAsNumber} / ${maxAsNumber}`;
   }
 
   private get supportingOrErrorText() {
@@ -59,9 +71,11 @@ export class Field extends LitElement implements SurfacePositionTarget {
    * to screen readers.
    */
   @state() private refreshErrorAlert = false;
-  @query('.label.floating') private readonly floatingLabelEl!: HTMLElement|null;
-  @query('.label.resting') private readonly restingLabelEl!: HTMLElement|null;
-  @query('.container') private readonly containerEl!: HTMLElement|null;
+  @state() private disableTransitions = false;
+  @query('.label.floating')
+  private readonly floatingLabelEl!: HTMLElement | null;
+  @query('.label.resting') private readonly restingLabelEl!: HTMLElement | null;
+  @query('.container') private readonly containerEl!: HTMLElement | null;
 
   /**
    * Re-announces the field's error supporting text to screen readers.
@@ -76,6 +90,11 @@ export class Field extends LitElement implements SurfacePositionTarget {
 
   protected override update(props: PropertyValues<Field>) {
     // Client-side property updates
+    const isDisabledChanging =
+      props.has('disabled') && props.get('disabled') !== undefined;
+    if (isDisabledChanging) {
+      this.disableTransitions = true;
+    }
 
     // When disabling, remove focus styles if focused.
     if (this.disabled && this.focused) {
@@ -86,7 +105,7 @@ export class Field extends LitElement implements SurfacePositionTarget {
     // Animate if focused or populated change.
     this.animateLabelIfNeeded({
       wasFocused: props.get('focused'),
-      wasPopulated: props.get('populated')
+      wasPopulated: props.get('populated'),
     });
 
     super.update(props);
@@ -98,11 +117,13 @@ export class Field extends LitElement implements SurfacePositionTarget {
     const outline = this.renderOutline?.(floatingLabel);
     const classes = {
       'disabled': this.disabled,
+      'disable-transitions': this.disableTransitions,
       'error': this.error && !this.disabled,
       'focused': this.focused,
       'with-start': this.hasStart,
       'with-end': this.hasEnd,
       'populated': this.populated,
+      'resizable': this.resizable,
       'required': this.required,
       'no-label': !this.label,
     };
@@ -110,15 +131,14 @@ export class Field extends LitElement implements SurfacePositionTarget {
     return html`
       <div class="field ${classMap(classes)}">
         <div class="container-overflow">
-          ${this.renderBackground?.()}
+          ${this.renderBackground?.()} ${this.renderIndicator?.()} ${outline}
           <div class="container">
             <div class="start">
               <slot name="start"></slot>
             </div>
             <div class="middle">
               <div class="label-wrapper">
-                ${restingLabel}
-                ${outline ? nothing : floatingLabel}
+                ${restingLabel} ${outline ? nothing : floatingLabel}
               </div>
               <div class="content">
                 <slot></slot>
@@ -128,8 +148,6 @@ export class Field extends LitElement implements SurfacePositionTarget {
               <slot name="end"></slot>
             </div>
           </div>
-          ${outline}
-          ${this.renderIndicator?.()}
         </div>
         ${this.renderSupportingText()}
       </div>
@@ -137,8 +155,12 @@ export class Field extends LitElement implements SurfacePositionTarget {
   }
 
   protected override updated(changed: PropertyValues<Field>) {
-    if (changed.has('supportingText') || changed.has('errorText') ||
-        changed.has('count') || changed.has('max')) {
+    if (
+      changed.has('supportingText') ||
+      changed.has('errorText') ||
+      changed.has('count') ||
+      changed.has('max')
+    ) {
       this.updateSlottedAriaDescribedBy();
     }
 
@@ -147,6 +169,12 @@ export class Field extends LitElement implements SurfacePositionTarget {
       // Re-add it after an animation frame to re-announce the error.
       requestAnimationFrame(() => {
         this.refreshErrorAlert = false;
+      });
+    }
+
+    if (this.disableTransitions) {
+      requestAnimationFrame(() => {
+        this.disableTransitions = false;
       });
     }
   }
@@ -166,21 +194,22 @@ export class Field extends LitElement implements SurfacePositionTarget {
     const start = html`<span>${supportingOrErrorText}</span>`;
     // Conditionally render counter so we don't render the extra `gap`.
     // TODO(b/244473435): add aria-label and announcements
-    const end = counterText ?
-        html`<span class="counter">${counterText}</span>` :
-        nothing;
+    const end = counterText
+      ? html`<span class="counter">${counterText}</span>`
+      : nothing;
 
     // Announce if there is an error and error text visible.
     // If refreshErrorAlert is true, do not announce. This will remove the
     // role="alert" attribute. Another render cycle will happen after an
     // animation frame to re-add the role.
     const shouldErrorAnnounce =
-        this.error && this.errorText && !this.refreshErrorAlert;
+      this.error && this.errorText && !this.refreshErrorAlert;
     const role = shouldErrorAnnounce ? 'alert' : nothing;
     return html`
       <div class="supporting-text" role=${role}>${start}${end}</div>
-      <slot name="aria-describedby" @slotchange=${
-        this.updateSlottedAriaDescribedBy}></slot>
+      <slot
+        name="aria-describedby"
+        @slotchange=${this.updateSlottedAriaDescribedBy}></slot>
     `;
   }
 
@@ -216,15 +245,18 @@ export class Field extends LitElement implements SurfacePositionTarget {
     const labelText = `${this.label}${this.required ? '*' : ''}`;
 
     return html`
-      <span class="label ${classMap(classes)}"
-        aria-hidden=${!visible}
-      >${labelText}</span>
+      <span class="label ${classMap(classes)}" aria-hidden=${!visible}
+        >${labelText}</span
+      >
     `;
   }
 
-  private animateLabelIfNeeded({wasFocused, wasPopulated}: {
-    wasFocused?: boolean,
-    wasPopulated?: boolean
+  private animateLabelIfNeeded({
+    wasFocused,
+    wasPopulated,
+  }: {
+    wasFocused?: boolean;
+    wasPopulated?: boolean;
   }) {
     if (!this.label) {
       return;
@@ -254,7 +286,9 @@ export class Field extends LitElement implements SurfacePositionTarget {
     // from appearing.
     // TODO(b/241113345): use animation tokens
     this.labelAnimation = this.floatingLabelEl?.animate(
-        this.getLabelKeyframes(), {duration: 150, easing: EASING.STANDARD});
+      this.getLabelKeyframes(),
+      {duration: 150, easing: EASING.STANDARD},
+    );
 
     this.labelAnimation?.addEventListener('finish', () => {
       // At the end of the animation, update the visible label.
@@ -268,10 +302,16 @@ export class Field extends LitElement implements SurfacePositionTarget {
       return [];
     }
 
-    const {x: floatingX, y: floatingY, height: floatingHeight} =
-        floatingLabelEl.getBoundingClientRect();
-    const {x: restingX, y: restingY, height: restingHeight} =
-        restingLabelEl.getBoundingClientRect();
+    const {
+      x: floatingX,
+      y: floatingY,
+      height: floatingHeight,
+    } = floatingLabelEl.getBoundingClientRect();
+    const {
+      x: restingX,
+      y: restingY,
+      height: restingHeight,
+    } = restingLabelEl.getBoundingClientRect();
     const floatingScrollWidth = floatingLabelEl.scrollWidth;
     const restingScrollWidth = restingLabelEl.scrollWidth;
     // Scale by width ratio instead of font size since letter-spacing will scale
@@ -284,14 +324,15 @@ export class Field extends LitElement implements SurfacePositionTarget {
     // we move the floating label down to the resting label's position, it won't
     // exactly match because of this. We need to adjust by half of what the
     // final scaled floating label's height will be.
-    const yDelta = restingY - floatingY +
-        Math.round((restingHeight - floatingHeight * scale) / 2);
+    const yDelta =
+      restingY -
+      floatingY +
+      Math.round((restingHeight - floatingHeight * scale) / 2);
 
     // Create the two transforms: floating to resting (using the calculations
     // above), and resting to floating (re-setting the transform to initial
     // values).
-    const restTransform =
-        `translateX(${xDelta}px) translateY(${yDelta}px) scale(${scale})`;
+    const restTransform = `translateX(${xDelta}px) translateY(${yDelta}px) scale(${scale})`;
     const floatTransform = `translateX(0) translateY(0) scale(1)`;
 
     // Constrain the floating labels width to a scaled percentage of the
@@ -302,12 +343,14 @@ export class Field extends LitElement implements SurfacePositionTarget {
     const width = isRestingClipped ? `${restingClientWidth / scale}px` : '';
     if (this.focused || this.populated) {
       return [
-        {transform: restTransform, width}, {transform: floatTransform, width}
+        {transform: restTransform, width},
+        {transform: floatTransform, width},
       ];
     }
 
     return [
-      {transform: floatTransform, width}, {transform: restTransform, width}
+      {transform: floatTransform, width},
+      {transform: restTransform, width},
     ];
   }
 

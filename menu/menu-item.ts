@@ -6,15 +6,11 @@
 
 import {customElement} from 'lit/decorators.js';
 
-import {styles as listItemForcedColorsStyles} from '../list/internal/listitem/forced-colors-styles.css.js';
-import {styles as listItemStyles} from '../list/internal/listitem/list-item-styles.css.js';
-
-import {styles as forcedColorsStyles} from './internal/menuitem/forced-colors-styles.css.js';
 import {MenuItemEl} from './internal/menuitem/menu-item.js';
 import {styles} from './internal/menuitem/menu-item-styles.css.js';
 
-export {ListItem} from '../list/internal/listitem/list-item.js';
-export {CloseMenuEvent, DeactivateItemsEvent, MenuItem} from './internal/shared.js';
+export {type MenuItem} from './internal/controllers/menuItemController.js';
+export {type CloseMenuEvent} from './internal/controllers/shared.js';
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -39,6 +35,5 @@ declare global {
  */
 @customElement('md-menu-item')
 export class MdMenuItem extends MenuItemEl {
-  static override styles =
-      [listItemStyles, styles, listItemForcedColorsStyles, forcedColorsStyles];
+  static override styles = [styles];
 }

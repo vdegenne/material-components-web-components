@@ -2,12 +2,12 @@
 
 {% block head %}
   <script type="module" src="/js/pages/components.js"></script>
-  <link rel="stylesheet" href="/css/components.css" />
+  <link rel="stylesheet" href="/css/md-layout.css" />
   <link rel="stylesheet" href="/css/syntax-highlight.css" />
 {% endblock %}
 
 {% block toc%}
-{{ content | toc | safe }}
+{{ content | toc | filterToc | safe }}
 {% endblock %}
 
 {% block content %}
@@ -18,5 +18,5 @@
     import="/js/hydration-entrypoints{{ page.filePathStem }}.js">
 </lit-island>
 {% endif %}
-{{ content | safe }}
+{{ content | mdMarkdown | safe }}
 {% endblock %}

@@ -45,6 +45,7 @@
   :host {
     display: inline-flex;
     outline: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .md3-segmented-button {
@@ -97,13 +98,16 @@
     &.md3-segmented-button--selected.md3-segmented-button--with-label.md3-segmented-button--with-checkmark,
     &.md3-segmented-button--selected.md3-segmented-button--without-label.md3-segmented-button--with-checkmark {
       .md3-segmented-button__graphic {
-        // TODO(b/198759625): Use padding token instead of hardcoded 8px value.
+        // b/198759625 - Use padding token instead of hardcoded 8px value.
         width: calc(var(--_icon-size) + 8px);
       }
     }
 
     .md3-segmented-button__label-text {
-      font: var(--_label-text-type);
+      font-family: var(--_label-text-font);
+      font-size: var(--_label-text-size);
+      line-height: var(--_label-text-line-height);
+      font-weight: var(--_label-text-weight);
     }
 
     &.md3-segmented-button--selected:enabled {

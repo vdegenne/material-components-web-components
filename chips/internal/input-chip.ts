@@ -14,11 +14,13 @@ import {renderRemoveButton} from './trailing-icons.js';
 
 /**
  * An input chip component.
+ *
+ * @fires remove {Event} Dispatched when the remove button is clicked.
  */
 export class InputChip extends MultiActionChip {
   @property({type: Boolean}) avatar = false;
   @property() href = '';
-  @property() target: '_blank'|'_parent'|'_self'|'_top'|'' = '';
+  @property() target: '_blank' | '_parent' | '_self' | '_top' | '' = '';
   @property({type: Boolean, attribute: 'remove-only'}) removeOnly = false;
   @property({type: Boolean, reflect: true}) selected = false;
 
@@ -50,7 +52,7 @@ export class InputChip extends MultiActionChip {
   }
 
   @query('.trailing.action')
-  protected readonly trailingAction!: HTMLElement|null;
+  protected readonly trailingAction!: HTMLElement | null;
 
   protected override getContainerClasses() {
     return {
@@ -64,39 +66,44 @@ export class InputChip extends MultiActionChip {
     };
   }
 
-  protected override renderAction() {
+  protected override renderPrimaryAction(content: unknown) {
     const {ariaLabel} = this as ARIAMixinStrict;
     if (this.href) {
       return html`
-        <a class="primary action"
+        <a
+          class="primary action"
           id="link"
           aria-label=${ariaLabel || nothing}
           href=${this.href}
           target=${this.target || nothing}
-        >${this.renderContent()}</a>
+          >${content}</a
+        >
       `;
     }
 
     if (this.removeOnly) {
       return html`
         <span class="primary action" aria-label=${ariaLabel || nothing}>
-          ${this.renderContent()}
+          ${content}
         </span>
       `;
     }
 
     return html`
-      <button class="primary action"
+      <button
+        class="primary action"
         id="button"
         aria-label=${ariaLabel || nothing}
-        ?disabled=${this.disabled}
+        ?disabled=${this.disabled && !this.alwaysFocusable}
         type="button"
-      >${this.renderContent()}</button>
+        >${content}</button
+      >
     `;
   }
 
-  protected override renderTrailingAction() {
+  protected override renderTrailingAction(focusListener: EventListener) {
     return renderRemoveButton({
+      focusListener,
       ariaLabel: this.ariaLabelRemove,
       disabled: !this.href && this.disabled,
       tabbable: this.removeOnly,

@@ -53,7 +53,10 @@ export class TextFieldHarness extends Harness<TextField> {
   async deleteValue(beginIndex?: number, endIndex?: number) {
     this.simulateKeypress(await this.getInteractiveElement(), 'Backspace');
     this.simulateDeletion(
-        await this.getInteractiveElement(), beginIndex, endIndex);
+      await this.getInteractiveElement(),
+      beginIndex,
+      endIndex,
+    );
   }
 
   override async reset() {
@@ -75,28 +78,19 @@ export class TextFieldHarness extends Harness<TextField> {
 
     this.valueBeforeChange = textField.value;
     super.simulatePointerFocus(input);
-
-    const prevFocus = input.focus;
-    if (prevFocus === HTMLElement.prototype.focus) {
-      // Swap to a no-op if nobody is spying on this method so that we don't
-      // generate side-effects when we actually call focus().
-      input.focus = () => {};
-    }
-
-    // Call focus() as a side-effect since delegatesFocus won't be triggered
-    // with this simulation. Replace input.focus() with a no-op if needed to
-    // avoid actually calling focus.
-    textField.focus();
-    input.focus = prevFocus;
   }
 
   protected simulateInput(
-      element: HTMLInputElement|HTMLTextAreaElement, charactersToAppend: string,
-      init?: InputEventInit) {
+    element: HTMLInputElement | HTMLTextAreaElement,
+    charactersToAppend: string,
+    init?: InputEventInit,
+  ) {
     element.value += charactersToAppend;
     if (!init) {
       init = {
         inputType: 'insertText',
+        composed: true,
+        bubbles: true,
         isComposing: false,
         data: charactersToAppend,
       };
@@ -106,14 +100,20 @@ export class TextFieldHarness extends Harness<TextField> {
   }
 
   protected simulateDeletion(
-      element: HTMLInputElement|HTMLTextAreaElement, beginIndex?: number,
-      endIndex?: number, init?: InputEventInit) {
+    element: HTMLInputElement | HTMLTextAreaElement,
+    beginIndex?: number,
+    endIndex?: number,
+    init?: InputEventInit,
+  ) {
     const deletedCharacters = element.value.slice(beginIndex, endIndex);
-    element.value = element.value.substring(0, beginIndex ?? 0) +
-        element.value.substring(endIndex ?? element.value.length);
+    element.value =
+      element.value.substring(0, beginIndex ?? 0) +
+      element.value.substring(endIndex ?? element.value.length);
     if (!init) {
       init = {
         inputType: 'deleteContentBackward',
+        composed: true,
+        bubbles: true,
         isComposing: false,
         data: deletedCharacters,
       };
@@ -122,8 +122,9 @@ export class TextFieldHarness extends Harness<TextField> {
     element.dispatchEvent(new InputEvent('input', init));
   }
 
-  protected simulateChangeIfNeeded(element: HTMLInputElement|
-                                   HTMLTextAreaElement) {
+  protected simulateChangeIfNeeded(
+    element: HTMLInputElement | HTMLTextAreaElement,
+  ) {
     if (this.valueBeforeChange === element.value) {
       return;
     }
@@ -134,7 +135,8 @@ export class TextFieldHarness extends Harness<TextField> {
 
   protected override async getInteractiveElement() {
     await this.element.updateComplete;
-    return this.element.renderRoot.querySelector('.input') as HTMLInputElement |
-        HTMLTextAreaElement;
+    return this.element.renderRoot.querySelector('.input') as
+      | HTMLInputElement
+      | HTMLTextAreaElement;
   }
 }

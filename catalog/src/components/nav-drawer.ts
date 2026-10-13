@@ -6,7 +6,7 @@
 
 import {animate, fadeIn, fadeOut} from '@lit-labs/motion';
 import {EASING} from '@material/web/internal/motion/animation.js';
-import {css, html, LitElement, nothing} from 'lit';
+import {LitElement, PropertyValues, css, html, nothing} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 
 import {drawerOpenSignal} from '../signals/drawer-open-state.js';
@@ -21,8 +21,8 @@ import {SignalElement} from '../signals/signal-element.js';
  * widths, and position itself inline with the page at wider page widths. Most
  * importantly, this sidebar is SSR compatible.
  */
-@customElement('nav-drawer') export class NavDrawer extends SignalElement
-(LitElement) {
+@customElement('nav-drawer')
+export class NavDrawer extends SignalElement(LitElement) {
   /**
    * Whether or not the side drawer is collapsible or inline.
    */
@@ -35,6 +35,8 @@ import {SignalElement} from '../signals/signal-element.js';
 
   @property({attribute: 'page-title'}) pageTitle = '';
 
+  private lastDrawerOpen = drawerOpenSignal.value;
+
   render() {
     const showModal = this.isCollapsible && drawerOpenSignal.value;
 
@@ -43,8 +45,9 @@ import {SignalElement} from '../signals/signal-element.js';
     const drawerContentOpacityDuration = showModal ? 300 : 150;
     const scrimOpacityDuration = 150;
 
-    const drawerSlideAnimationEasing =
-        showModal ? EASING.EMPHASIZED : EASING.EMPHASIZED_ACCELERATE;
+    const drawerSlideAnimationEasing = showModal
+      ? EASING.EMPHASIZED
+      : EASING.EMPHASIZED_ACCELERATE;
 
     return html`
       <div class="root">
@@ -63,8 +66,7 @@ import {SignalElement} from '../signals/signal-element.js';
                     },
                     in: fadeIn,
                     out: fadeOut,
-                  })}
-                ></div>`
+                  })}></div>`
               : nothing}
             <aside
               ?inert=${this.isCollapsible && !drawerOpenSignal.value}
@@ -74,22 +76,21 @@ import {SignalElement} from '../signals/signal-element.js';
                   duration: drawerSlideAnimationDuration,
                   easing: drawerSlideAnimationEasing,
                 },
-              })}
-            >
-              <slot
-                ${animate({
-                  properties: ['opacity'],
-                  keyframeOptions: {
-                    duration: drawerContentOpacityDuration,
-                    easing: 'linear',
-                  },
-                })}
-              ></slot>
+              })}>
+              <div class="scroll-wrapper">
+                <slot
+                  ${animate({
+                    properties: ['opacity'],
+                    keyframeOptions: {
+                      duration: drawerContentOpacityDuration,
+                      easing: 'linear',
+                    },
+                  })}></slot>
+              </div>
             </aside>
           </div>
           <div class="panes">
-            ${this.renderTocPane(showModal)}
-            ${this.renderContent(showModal)}
+            ${this.renderTocPane(showModal)}${this.renderContent(showModal)}
           </div>
         </div>
       </div>
@@ -97,14 +98,15 @@ import {SignalElement} from '../signals/signal-element.js';
   }
 
   private renderContent(showModal: boolean) {
-    return html`
-      <div
-          class="pane content-pane"
-          ?inert=${showModal || inertContentSignal.value}>
+    return html` <div
+      class="pane content-pane"
+      ?inert=${showModal || inertContentSignal.value}>
+      <div class="scroll-wrapper">
         <div class="content">
           <slot name="app-content"></slot>
         </div>
-      </div>`;
+      </div>
+    </div>`;
   }
 
   private renderTocPane(showModal: boolean) {
@@ -112,12 +114,15 @@ import {SignalElement} from '../signals/signal-element.js';
       return nothing;
     }
 
-    return html`
-      <div class="pane toc" ?inert=${showModal || inertContentSignal.value}>
+    return html` <div
+      class="pane toc"
+      ?inert=${showModal || inertContentSignal.value}>
+      <div class="scroll-wrapper">
         <p>On this page:</p>
         <h2>${this.pageTitle}</h2>
         <slot name="toc"></slot>
-      </div>`;
+      </div>
+    </div>`;
   }
 
   /**
@@ -137,22 +142,36 @@ import {SignalElement} from '../signals/signal-element.js';
     });
   }
 
+  updated(changed: PropertyValues<this>) {
+    super.updated(changed);
+    if (
+      this.lastDrawerOpen !== drawerOpenSignal.value &&
+      drawerOpenSignal.value &&
+      this.isCollapsible
+    ) {
+      (
+        this.querySelector(
+          'md-list.nav md-list-item[tabindex="0"]',
+        ) as HTMLElement
+      )?.focus();
+    }
+  }
+
   static styles = css`
     :host {
       --_drawer-width: var(--catalog-drawer-width, 300px);
       /* When in wide mode inline start margin is handled by the sidebar */
       --_pane-margin-inline-start: 0px;
-      --_pane-margin-inline-end: var(--catalog-spacing-xl);
-      --_pane-margin-block-end: var(--catalog-spacing-xl);
+      --_pane-margin-inline-end: var(--catalog-spacing-l);
+      --_pane-margin-block-end: var(--catalog-spacing-l);
       --_toc-pane-width: 250px;
       min-height: 100dvh;
       display: flex;
       flex-direction: column;
     }
 
-    ::slotted(*) {
-      --md-list-item-list-item-container-shape: var(--catalog-shape-xl);
-      --md-focus-ring-shape: var(--catalog-shape-xl);
+    ::slotted(nav) {
+      list-style: none;
     }
 
     .body {
@@ -182,14 +201,13 @@ import {SignalElement} from '../signals/signal-element.js';
       );
       background-color: var(--md-sys-color-surface);
       border-radius: var(--catalog-shape-xl);
-      padding-block: var(--catalog-spacing-xl);
     }
 
     .pane,
     .panes {
       /* emphasized – duration matching render fn for sidebar */
       transition: 0.5s cubic-bezier(0.3, 0, 0, 1);
-      transition-property: margin, height, border-radius, max-width, width;;
+      transition-property: margin, height, border-radius, max-width, width;
     }
 
     .panes {
@@ -197,9 +215,13 @@ import {SignalElement} from '../signals/signal-element.js';
       justify-content: start;
       flex-direction: row-reverse;
       gap: var(--_pane-margin-inline-end);
-      margin-inline: var(--_pane-margin-inline-start) var(--_pane-margin-inline-end);
+      margin-inline: var(--_pane-margin-inline-start)
+        var(--_pane-margin-inline-end);
       width: 100%;
-      max-width: calc(100% - var(--_drawer-width) - var(--_pane-margin-inline-start) - var(--_pane-margin-inline-end));
+      max-width: calc(
+        100% - var(--_drawer-width) - var(--_pane-margin-inline-start) -
+          var(--_pane-margin-inline-end)
+      );
     }
 
     .pane.content-pane {
@@ -209,8 +231,11 @@ import {SignalElement} from '../signals/signal-element.js';
     .pane.toc {
       width: auto;
       box-sizing: border-box;
-      padding-inline: var(--catalog-spacing-xl);
       width: var(--_toc-pane-width);
+    }
+
+    .toc .scroll-wrapper {
+      padding-inline: var(--catalog-spacing-xl);
     }
 
     .pane.toc p {
@@ -245,6 +270,18 @@ import {SignalElement} from '../signals/signal-element.js';
       inset: var(--catalog-top-app-bar-height) 0 0 0;
       z-index: 12;
       background-color: var(--md-sys-color-surface-container);
+      overflow: hidden;
+    }
+
+    .scroll-wrapper {
+      overflow-y: auto;
+      max-height: 100%;
+      border-radius: inherit;
+      box-sizing: border-box;
+    }
+
+    .pane .scroll-wrapper {
+      padding-block: var(--catalog-spacing-xl);
     }
 
     aside slot {
@@ -252,7 +289,7 @@ import {SignalElement} from '../signals/signal-element.js';
     }
 
     .scrim {
-      background-color: var(--md-dialog-scrim-color, rgba(0, 0, 0, 0.32));
+      background-color: rgba(0, 0, 0, 0.32);
     }
 
     @media (max-width: 900px) {
@@ -267,8 +304,10 @@ import {SignalElement} from '../signals/signal-element.js';
       }
 
       .panes {
-
-      max-width: calc(100% - var(--_pane-margin-inline-start) - var(--_pane-margin-inline-end));
+        max-width: calc(
+          100% - var(--_pane-margin-inline-start) -
+            var(--_pane-margin-inline-end)
+        );
       }
 
       .content {
@@ -331,7 +370,7 @@ import {SignalElement} from '../signals/signal-element.js';
         --_scrollbar-width: 8px;
       }
 
-      .pane {
+      .scroll-wrapper {
         /* firefox */
         scrollbar-color: var(--md-sys-color-primary) transparent;
         scrollbar-width: thin;
@@ -345,12 +384,12 @@ import {SignalElement} from '../signals/signal-element.js';
       }
 
       /* Chromium + Safari */
-      .pane::-webkit-scrollbar {
+      .scroll-wrapper::-webkit-scrollbar {
         background-color: transparent;
         width: var(--_scrollbar-width);
       }
 
-      .pane::-webkit-scrollbar-thumb {
+      .scroll-wrapper::-webkit-scrollbar-thumb {
         background-color: var(--md-sys-color-primary);
         border-radius: calc(var(--_scrollbar-width) / 2);
       }
@@ -368,17 +407,17 @@ import {SignalElement} from '../signals/signal-element.js';
         }
 
         .scrim {
-          background-color: var(--md-dialog-scrim-color, rgba(0, 0, 0, 0.75));
+          background-color: rgba(0, 0, 0, 0.75);
         }
       }
 
       @media (pointer: fine) {
-        .pane {
+        .scroll-wrapper {
           /* firefox */
           scrollbar-color: CanvasText transparent;
         }
 
-        .pane::-webkit-scrollbar-thumb {
+        .scroll-wrapper::-webkit-scrollbar-thumb {
           /* Chromium + Safari */
           background-color: CanvasText;
         }

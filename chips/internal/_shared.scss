@@ -20,6 +20,8 @@
     border-end-end-radius: var(--_container-shape-end-end);
     display: inline-flex;
     height: var(--_container-height);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
 
     @include ripple.theme(
       (
@@ -29,6 +31,14 @@
         'pressed-opacity': var(--_pressed-state-layer-opacity),
       )
     );
+  }
+
+  :host([disabled]) {
+    pointer-events: none;
+  }
+
+  :host([touch-target='wrapper']) {
+    margin: max(0px, (48px - var(--_container-height)) / 2) 0;
   }
 
   md-focus-ring {
@@ -79,7 +89,6 @@
     border: none;
     border-radius: inherit;
     display: flex;
-    gap: 8px;
     outline: none;
     padding: 0;
     position: relative;
@@ -87,8 +96,12 @@
   }
 
   .primary.action {
-    padding-inline-start: 8px;
-    padding-inline-end: 16px;
+    padding-inline-start: var(--_leading-space);
+    padding-inline-end: var(--_trailing-space);
+  }
+
+  .has-icon .primary.action {
+    padding-inline-start: var(--_with-leading-icon-leading-space);
   }
 
   .touch {
@@ -97,6 +110,10 @@
     position: absolute;
     transform: translateY(-50%);
     width: 100%;
+  }
+
+  :host([touch-target='none']) .touch {
+    display: none;
   }
 
   // Outline, separate node for disabled opacity changes
@@ -108,11 +125,11 @@
     position: absolute;
   }
 
-  :focus .outline {
+  :where(:focus) .outline {
     border-color: var(--_focus-outline-color);
   }
 
-  .disabled .outline {
+  :where(.disabled) .outline {
     border-color: var(--_disabled-outline-color);
     opacity: var(--_disabled-outline-opacity);
   }
@@ -132,26 +149,29 @@
     align-items: center;
     color: var(--_label-text-color);
     display: flex;
-    font: var(--_label-text-type);
+    font-family: var(--_label-text-font);
+    font-size: var(--_label-text-size);
+    line-height: var(--_label-text-line-height);
+    font-weight: var(--_label-text-weight);
     height: 100%;
     text-overflow: ellipsis;
     user-select: none;
     white-space: nowrap;
   }
 
-  :hover .label {
+  :where(:hover) .label {
     color: var(--_hover-label-text-color);
   }
 
-  :focus .label {
+  :where(:focus) .label {
     color: var(--_focus-label-text-color);
   }
 
-  :active .label {
+  :where(:active) .label {
     color: var(--_pressed-label-text-color);
   }
 
-  .disabled .label {
+  :where(.disabled) .label {
     color: var(--_disabled-label-text-color);
     opacity: var(--_disabled-label-text-opacity);
   }
@@ -173,20 +193,37 @@
     color: var(--_leading-icon-color);
   }
 
-  :hover .leading.icon {
+  .leading.icon ::slotted(*),
+  .leading.icon svg {
+    margin-inline-end: var(--_icon-label-space);
+  }
+
+  :where(:hover) .leading.icon {
     color: var(--_hover-leading-icon-color);
   }
 
-  :focus .leading.icon {
+  :where(:focus) .leading.icon {
     color: var(--_focus-leading-icon-color);
   }
 
-  :active .leading.icon {
+  :where(:active) .leading.icon {
     color: var(--_pressed-leading-icon-color);
   }
 
-  .disabled .leading.icon {
+  :where(.disabled) .leading.icon {
     color: var(--_disabled-leading-icon-color);
     opacity: var(--_disabled-leading-icon-opacity);
+  }
+
+  @media (forced-colors: active) {
+    :where(.disabled) :is(.label, .outline, .leading.icon) {
+      color: GrayText;
+      opacity: 1;
+    }
+  }
+
+  a,
+  button:not(:disabled) {
+    cursor: inherit;
   }
 }

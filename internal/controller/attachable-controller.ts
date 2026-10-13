@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {ReactiveController, ReactiveControllerHost, isServer} from 'lit';
+import {isServer, ReactiveController, ReactiveControllerHost} from 'lit';
 
 /**
  * An element that can be attached to an associated controlling element.
@@ -33,18 +33,18 @@ export interface Attachable {
    * </button>
    * ```
    */
-  htmlFor: string|null;
+  htmlFor: string | null;
 
   /**
-   * The element that controls the visibility of the attachable element. It is
-   * one of:
+   * Gets or sets the element that controls the visibility of the attachable
+   * element. It is one of:
    *
    * - The control referenced by the `for` attribute.
    * - The control provided to `element.attach(control)`
    * - The element's parent.
    * - `null` if the element is not controlled.
    */
-  readonly control: HTMLElement|null;
+  control: HTMLElement | null;
 
   /**
    * Attaches the element to an interactive control.
@@ -73,7 +73,7 @@ interface AttachableControllerHost extends ReactiveControllerHost, HTMLElement {
   [ATTACHABLE_CONTROLLER]?: AttachableController;
 }
 
-let FOR_ATTRIBUTE_OBSERVER: MutationObserver|undefined;
+let FOR_ATTRIBUTE_OBSERVER: MutationObserver | undefined;
 
 if (!isServer) {
   /**
@@ -81,12 +81,13 @@ if (!isServer) {
    * `Attachable` elements. If the `for` attribute changes, the controller will
    * re-attach to the new referenced element.
    */
-  FOR_ATTRIBUTE_OBSERVER = new MutationObserver(records => {
+  FOR_ATTRIBUTE_OBSERVER = new MutationObserver((records) => {
     for (const record of records) {
       // When a control's `for` attribute changes, inform its
       // `AttachableController` to update to a new control.
-      (record.target as AttachableControllerHost)[ATTACHABLE_CONTROLLER]
-          ?.hostConnected();
+      (record.target as AttachableControllerHost)[
+        ATTACHABLE_CONTROLLER
+      ]?.hostConnected();
     }
   });
 }
@@ -117,7 +118,7 @@ export class AttachableController implements ReactiveController, Attachable {
     return this.host.getAttribute('for');
   }
 
-  set htmlFor(htmlFor: string|null) {
+  set htmlFor(htmlFor: string | null) {
     if (htmlFor === null) {
       this.host.removeAttribute('for');
     } else {
@@ -131,14 +132,22 @@ export class AttachableController implements ReactiveController, Attachable {
         return null;
       }
 
-      return (this.host.getRootNode() as Document | ShadowRoot)
-          .querySelector<HTMLElement>(`#${this.htmlFor}`);
+      return (
+        this.host.getRootNode() as Document | ShadowRoot
+      ).querySelector<HTMLElement>(`#${this.htmlFor}`);
     }
 
     return this.currentControl || this.host.parentElement;
   }
+  set control(control: HTMLElement | null) {
+    if (control) {
+      this.attach(control);
+    } else {
+      this.detach();
+    }
+  }
 
-  private currentControl: HTMLElement|null = null;
+  private currentControl: HTMLElement | null = null;
 
   /**
    * Creates a new controller for an `Attachable` element.
@@ -149,9 +158,12 @@ export class AttachableController implements ReactiveController, Attachable {
    *     logic whenever the control changes.
    */
   constructor(
-      private readonly host: AttachableControllerHost,
-      private readonly onControlChange:
-          (prev: HTMLElement|null, next: HTMLElement|null) => void) {
+    private readonly host: AttachableControllerHost,
+    private readonly onControlChange: (
+      prev: HTMLElement | null,
+      next: HTMLElement | null,
+    ) => void,
+  ) {
     host.addController(this);
     host[ATTACHABLE_CONTROLLER] = this;
     FOR_ATTRIBUTE_OBSERVER?.observe(host, {attributeFilter: ['for']});
@@ -185,7 +197,7 @@ export class AttachableController implements ReactiveController, Attachable {
     this.setCurrentControl(null);
   }
 
-  private setCurrentControl(control: HTMLElement|null) {
+  private setCurrentControl(control: HTMLElement | null) {
     this.onControlChange(this.currentControl, control);
     this.currentControl = control;
   }

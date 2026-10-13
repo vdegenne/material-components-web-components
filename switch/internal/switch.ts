@@ -7,12 +7,33 @@
 import '../../focus/md-focus-ring.js';
 import '../../ripple/ripple.js';
 
-import {html, isServer, LitElement, nothing, PropertyValues, TemplateResult} from 'lit';
+import {html, isServer, LitElement, nothing, TemplateResult} from 'lit';
 import {property, query} from 'lit/decorators.js';
 import {ClassInfo, classMap} from 'lit/directives/class-map.js';
 
 import {requestUpdateOnAriaChange} from '../../internal/aria/delegate.js';
-import {dispatchActivationClick, isActivationClick} from '../../internal/controller/events.js';
+import {
+  dispatchActivationClick,
+  isActivationClick,
+} from '../../internal/events/form-label-activation.js';
+import {redispatchEvent} from '../../internal/events/redispatch-event.js';
+import {
+  createValidator,
+  getValidityAnchor,
+  mixinConstraintValidation,
+} from '../../labs/behaviors/constraint-validation.js';
+import {mixinElementInternals} from '../../labs/behaviors/element-internals.js';
+import {
+  getFormState,
+  getFormValue,
+  mixinFormAssociated,
+} from '../../labs/behaviors/form-associated.js';
+import {CheckboxValidator} from '../../labs/behaviors/validators/checkbox-validator.js';
+
+// Separate variable needed for closure.
+const switchBaseClass = mixinConstraintValidation(
+  mixinFormAssociated(mixinElementInternals(LitElement)),
+);
 
 /**
  * @fires input {InputEvent} Fired whenever `selected` changes due to user
@@ -20,22 +41,16 @@ import {dispatchActivationClick, isActivationClick} from '../../internal/control
  * @fires change {Event} Fired whenever `selected` changes due to user
  * interaction (bubbles).
  */
-export class Switch extends LitElement {
+export class Switch extends switchBaseClass {
   static {
-    requestUpdateOnAriaChange(this);
+    requestUpdateOnAriaChange(Switch);
   }
 
   /** @nocollapse */
-  static override shadowRootOptions:
-      ShadowRootInit = {mode: 'open', delegatesFocus: true};
-
-  /** @nocollapse */
-  static formAssociated = true;
-
-  /**
-   * Disables the switch and makes it non-interactive.
-   */
-  @property({type: Boolean, reflect: true}) disabled = false;
+  static override shadowRootOptions: ShadowRootInit = {
+    mode: 'open',
+    delegatesFocus: true,
+  };
 
   /**
    * Puts the switch in the selected state and sets the form submission value to
@@ -55,8 +70,13 @@ export class Switch extends LitElement {
   @property({type: Boolean, attribute: 'show-only-selected-icon'})
   showOnlySelectedIcon = false;
 
-  // Button
-  @query('button') private readonly button!: HTMLButtonElement|null;
+  /**
+   * When true, require the switch to be selected when participating in
+   * form submission.
+   *
+   * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/checkbox#validation
+   */
+  @property({type: Boolean}) required = false;
 
   /**
    * The value associated with this switch on form submission. `null` is
@@ -64,53 +84,19 @@ export class Switch extends LitElement {
    */
   @property() value = 'on';
 
-  /**
-   * The HTML name to use in form submission.
-   */
-  get name() {
-    return this.getAttribute('name') ?? '';
-  }
-  set name(name: string) {
-    this.setAttribute('name', name);
-  }
-
-  /**
-   * The associated form element with which this element's value will submit.
-   */
-  get form() {
-    return this.internals.form;
-  }
-
-  /**
-   * The labels this element is associated with.
-   */
-  get labels() {
-    return this.internals.labels;
-  }
-
-  private readonly internals =
-      (this as HTMLElement /* needed for closure */).attachInternals();
+  @query('input') private readonly input!: HTMLInputElement | null;
 
   constructor() {
     super();
     if (!isServer) {
       this.addEventListener('click', (event: MouseEvent) => {
-        if (!isActivationClick(event)) {
+        if (!isActivationClick(event) || !this.input) {
           return;
         }
-        this.button?.focus();
-        if (this.button != null) {
-          // this triggers the click behavior, and the ripple
-          dispatchActivationClick(this.button);
-        }
+        this.focus();
+        dispatchActivationClick(this.input);
       });
     }
-  }
-
-  protected override update(changed: PropertyValues<Switch>) {
-    const state = String(this.selected);
-    this.internals.setFormValue(this.selected ? this.value : null, state);
-    super.update(changed);
   }
 
   protected override render(): TemplateResult {
@@ -118,42 +104,43 @@ export class Switch extends LitElement {
     // content](https://html.spec.whatwg.org/multipage/dom.html#phrasing-content)
     // children, which includes custom elements, but not `div`s
     return html`
-      <button
-        id="switch"
-        type="button"
-        class="switch ${classMap(this.getRenderClasses())}"
-        role="switch"
-        aria-checked="${this.selected}"
-        aria-label=${(this as ARIAMixin).ariaLabel || nothing}
-        ?disabled=${this.disabled}
-        @click=${this.handleClick}
-      >
-        <md-focus-ring part="focus-ring"></md-focus-ring>
-        <span class="track">
-          ${this.renderHandle()}
-        </span>
-      </button>
+      <div class="switch ${classMap(this.getRenderClasses())}">
+        <input
+          id="switch"
+          class="touch"
+          type="checkbox"
+          role="switch"
+          aria-label=${(this as ARIAMixin).ariaLabel || nothing}
+          ?checked=${this.selected}
+          ?disabled=${this.disabled}
+          ?required=${this.required}
+          @change=${this.handleChange} />
+
+        <md-focus-ring part="focus-ring" for="switch"></md-focus-ring>
+        <span class="track"> ${this.renderHandle()} </span>
+      </div>
     `;
   }
 
   private getRenderClasses(): ClassInfo {
     return {
-      'switch--selected': this.selected,
-      'switch--unselected': !this.selected,
+      'selected': this.selected,
+      'unselected': !this.selected,
+      'disabled': this.disabled,
     };
   }
 
   private renderHandle() {
     const classes = {
-      'with-icon': this.icons || (this.showOnlySelectedIcon && this.selected),
+      'with-icon': this.showOnlySelectedIcon ? this.selected : this.icons,
     };
     return html`
+      ${this.renderTouchTarget()}
       <span class="handle-container">
         <md-ripple for="switch" ?disabled="${this.disabled}"></md-ripple>
         <span class="handle ${classMap(classes)}">
           ${this.shouldShowIcons() ? this.renderIcons() : html``}
         </span>
-        ${this.renderTouchTarget()}
       </span>
     `;
   }
@@ -172,9 +159,12 @@ export class Switch extends LitElement {
    */
   private renderOnIcon() {
     return html`
-      <svg class="icon icon--on" viewBox="0 0 24 24">
-        <path d="M9.55 18.2 3.65 12.3 5.275 10.675 9.55 14.95 18.725 5.775 20.35 7.4Z"/>
-      </svg>
+      <slot class="icon icon--on" name="on-icon">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M9.55 18.2 3.65 12.3 5.275 10.675 9.55 14.95 18.725 5.775 20.35 7.4Z" />
+        </svg>
+      </slot>
     `;
   }
 
@@ -183,9 +173,12 @@ export class Switch extends LitElement {
    */
   private renderOffIcon() {
     return html`
-      <svg class="icon icon--off" viewBox="0 0 24 24">
-        <path d="M6.4 19.2 4.8 17.6 10.4 12 4.8 6.4 6.4 4.8 12 10.4 17.6 4.8 19.2 6.4 13.6 12 19.2 17.6 17.6 19.2 12 13.6Z"/>
-      </svg>
+      <slot class="icon icon--off" name="off-icon">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M6.4 19.2 4.8 17.6 10.4 12 4.8 6.4 6.4 4.8 12 10.4 17.6 4.8 19.2 6.4 13.6 12 19.2 17.6 17.6 19.2 12 13.6Z" />
+        </svg>
+      </slot>
     `;
   }
 
@@ -197,28 +190,42 @@ export class Switch extends LitElement {
     return this.icons || this.showOnlySelectedIcon;
   }
 
-  private handleClick() {
-    if (this.disabled) {
-      return;
-    }
-
-    this.selected = !this.selected;
-    this.dispatchEvent(
-        new InputEvent('input', {bubbles: true, composed: true}));
-    // Bubbles but does not compose to mimic native browser <input> & <select>
-    // Additionally, native change event is not an InputEvent.
-    this.dispatchEvent(new Event('change', {bubbles: true}));
+  private handleChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    this.selected = target.checked;
+    redispatchEvent(this, event);
   }
 
-  /** @private */
-  formResetCallback() {
+  // Writable mixin properties for lit-html binding, needed for lit-analyzer
+  declare disabled: boolean;
+  declare name: string;
+
+  override [getFormValue]() {
+    return this.selected ? this.value : null;
+  }
+
+  override [getFormState]() {
+    return String(this.selected);
+  }
+
+  override formResetCallback() {
     // The selected property does not reflect, so the original attribute set by
     // the user is used to determine the default value.
     this.selected = this.hasAttribute('selected');
   }
 
-  /** @private */
-  formStateRestoreCallback(state: string) {
+  override formStateRestoreCallback(state: string) {
     this.selected = state === 'true';
+  }
+
+  [createValidator]() {
+    return new CheckboxValidator(() => ({
+      checked: this.selected,
+      required: this.required,
+    }));
+  }
+
+  [getValidityAnchor]() {
+    return this.input;
   }
 }

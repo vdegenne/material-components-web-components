@@ -6,28 +6,29 @@
 
 import '@material/web/checkbox/checkbox.js';
 
-import {labelStyles, MaterialStoryInit} from './material-collection.js';
+import {
+  labelStyles,
+  MaterialStoryInit,
+} from './material-collection.js';
 import {css, html} from 'lit';
 
 /** Knob types for checkbox stories. */
 export interface StoryKnobs {
   checked: boolean;
   disabled: boolean;
-  error: boolean;
   indeterminate: boolean;
 }
 
 const checkbox: MaterialStoryInit<StoryKnobs> = {
   name: 'Checkbox',
-  render({checked, disabled, error, indeterminate}) {
+  render({checked, disabled, indeterminate}) {
     return html`
       <md-checkbox
         aria-label="An example checkbox"
         ?checked=${checked}
         ?disabled=${disabled}
-        ?error=${error}
         ?indeterminate=${indeterminate}
-      ></md-checkbox>
+        touch-target="wrapper"></md-checkbox>
     `;
   },
 };
@@ -47,34 +48,31 @@ const withLabels: MaterialStoryInit<StoryKnobs> = {
       }
     `,
   ],
-  render({disabled, error}) {
+  render({disabled}) {
     return html`
       <div class="column" role="group" aria-label="Animals">
-        <label role="presentation">
+        <label>
           <md-checkbox
             ?disabled=${disabled}
-            ?error=${error}
             aria-label="Cats"
-          ></md-checkbox>
-          <span aria-hidden="true">Cats</span>
+            touch-target="wrapper"></md-checkbox>
+          Cats
         </label>
-        <label role="presentation">
+        <label>
           <md-checkbox
             checked
             ?disabled=${disabled}
-            ?error=${error}
             aria-label="dogs"
-          ></md-checkbox>
-          <span aria-hidden="true">Dogs</span>
+            touch-target="wrapper"></md-checkbox>
+          Dogs
         </label>
-        <label role="presentation">
+        <label>
           <md-checkbox
             indeterminate
             ?disabled=${disabled}
-            ?error=${error}
             aria-label="Birds"
-          ></md-checkbox>
-          <span aria-hidden="true">Birds</span>
+            touch-target="wrapper"></md-checkbox>
+          Birds
         </label>
       </div>
     `;

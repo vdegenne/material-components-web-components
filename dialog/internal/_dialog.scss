@@ -3,360 +3,284 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-// PUBLIC PROPERTIES
-
 // go/keep-sorted start
+@use 'sass:list';
 @use 'sass:map';
 // go/keep-sorted end
 // go/keep-sorted start
-@use '../../elevation/elevation';
-@use '../../internal/sass/theme';
-@use './tokens';
+@use '../../tokens';
 // go/keep-sorted end
 
+@mixin theme($tokens) {
+  $supported-tokens: list.join(
+    tokens.$md-comp-dialog-supported-tokens,
+    (
+      'container-shape-start-start',
+      'container-shape-start-end',
+      'container-shape-end-end',
+      'container-shape-end-start'
+    )
+  );
+
+  @each $token, $value in $tokens {
+    @if list.index($supported-tokens, $token) == null {
+      @error 'Token `#{$token}` is not a supported token.';
+    }
+
+    @if $value {
+      --md-dialog-#{$token}: #{$value};
+    }
+  }
+}
+
 @mixin styles() {
+  $md-sys-color: tokens.md-sys-color-values-light();
+  $md-sys-motion: tokens.md-sys-motion-values();
   $tokens: tokens.md-comp-dialog-values();
-  $tokens: theme.create-theme-vars($tokens, 'dialog');
+  @each $token, $value in $tokens {
+    $tokens: map.set($tokens, $token, var(--md-dialog-#{$token}, #{$value}));
+  }
+
+  // Support logical shape properties
+  $tokens: map.merge(
+    $tokens,
+    (
+      'container-shape-start-start':
+        var(
+          --md-dialog-container-shape-start-start,
+          map.get($tokens, 'container-shape')
+        ),
+      'container-shape-start-end':
+        var(
+          --md-dialog-container-shape-start-end,
+          map.get($tokens, 'container-shape')
+        ),
+      'container-shape-end-end':
+        var(
+          --md-dialog-container-shape-end-end,
+          map.get($tokens, 'container-shape')
+        ),
+      'container-shape-end-start':
+        var(
+          --md-dialog-container-shape-end-start,
+          map.get($tokens, 'container-shape')
+        ),
+    )
+  );
 
   :host {
-    @each $token, $value in $tokens {
-      --_#{$token}: #{$value};
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    :host {
-      --_opening-transition-duration: 0;
-      --_closing-transition-duration: 0;
-    }
-  }
-
-  .dialog {
+    border-start-start-radius: map.get($tokens, 'container-shape-start-start');
+    border-start-end-radius: map.get($tokens, 'container-shape-start-end');
+    border-end-end-radius: map.get($tokens, 'container-shape-end-end');
+    border-end-start-radius: map.get($tokens, 'container-shape-end-start');
+    display: contents;
+    margin: auto;
+    max-height: min(560px, calc(100% - 48px));
+    max-width: min(560px, calc(100% - 48px));
+    min-height: 140px;
+    min-width: 280px;
     position: fixed;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    inset: 0;
-    block-size: 100dvh;
-    inline-size: 100dvw;
-    max-block-size: 100dvh;
-    max-inline-size: 100dvw;
-    border: none;
+    height: fit-content;
+    width: fit-content;
+  }
+
+  dialog {
     background: transparent;
+    border: none;
+    border-radius: inherit;
+    flex-direction: column;
+    height: inherit;
+    margin: inherit;
+    max-height: inherit;
+    max-width: inherit;
+    min-height: inherit;
+    min-width: inherit;
+    outline: none;
+    overflow: visible;
     padding: 0;
-    margin: 0;
-    overflow: clip;
+    width: inherit;
   }
 
-  // stylelint-disable-next-line selector-pseudo-class-no-unknown --
-  // New platform pseudo-class
-  .dialog:not(:modal) {
-    z-index: 10000;
-    pointer-events: none;
-  }
-
-  .dialog[open] {
+  dialog[open] {
     display: flex;
   }
 
-  .dialog::backdrop {
-    // Per spec, custom properties don't inherit to backdrop so we avoid using it.
+  ::backdrop {
+    // Can't use ::backdrop since Firefox does not allow animations on it.
     background: none;
   }
 
-  // Note, using ::before as scrim because ::backdrop cannot inherit custom properties.
-  .dialog::before {
-    content: '';
-    position: absolute;
-    z-index: -1;
+  .scrim {
+    background: map.get($md-sys-color, 'scrim');
+    display: none;
     inset: 0;
-    block-size: 100dvh;
-    inline-size: 100dvw;
+    opacity: 32%;
     pointer-events: none;
+    position: fixed;
+    z-index: 1;
   }
 
-  // Hide scrim when modeless.
-  :host([modeless]) .dialog:before {
-    display: none;
+  :host([open]) .scrim {
+    display: flex;
+  }
+
+  h2 {
+    all: unset;
+    align-self: stretch;
+  }
+
+  .headline {
+    align-items: center;
+    color: map.get($tokens, 'headline-color');
+    display: flex;
+    flex-direction: column;
+    font-family: map.get($tokens, 'headline-font');
+    font-size: map.get($tokens, 'headline-size');
+    line-height: map.get($tokens, 'headline-line-height');
+    font-weight: map.get($tokens, 'headline-weight');
+    position: relative;
+  }
+
+  slot[name='headline']::slotted(*) {
+    align-items: center;
+    align-self: stretch;
+    box-sizing: border-box;
+    display: flex;
+    gap: 8px;
+    padding: 24px 24px 0;
+  }
+
+  .icon {
+    display: flex;
+  }
+
+  slot[name='icon']::slotted(*) {
+    color: map.get($tokens, 'icon-color');
+    fill: currentColor;
+    font-size: map.get($tokens, 'icon-size');
+    margin-top: 24px;
+    height: map.get($tokens, 'icon-size');
+    width: map.get($tokens, 'icon-size');
+  }
+
+  .has-icon slot[name='headline']::slotted(*) {
+    justify-content: center;
+    padding-top: 16px;
+  }
+
+  .scrollable slot[name='headline']::slotted(*) {
+    padding-bottom: 16px;
+  }
+
+  .scrollable.has-headline slot[name='content']::slotted(*) {
+    padding-top: 8px;
   }
 
   .container {
+    border-radius: inherit;
+    display: flex;
+    flex-direction: column;
+    // Safari won't show content with "flex: 1", but container needs to grow if
+    // height is set on the dialog, so use flex-grow instead.
+    flex-grow: 1;
+    overflow: hidden;
+    position: relative;
+    transform-origin: top;
+  }
+
+  .container::before {
+    background: map.get($tokens, 'container-color');
+    border-radius: inherit;
+    content: '';
+    inset: 0;
     position: absolute;
+  }
 
-    inset-inline-start: var(--_container-inset-inline-start);
-    inset-inline-end: var(--_container-inset-inline-end);
-    inset-block-start: var(--_container-inset-block-start);
-    inset-block-end: var(--_container-inset-block-end);
-
-    background-color: var(--_container-color);
-    border-radius: var(--_container-shape);
+  .scroller {
     display: flex;
+    flex: 1;
     flex-direction: column;
-    box-sizing: border-box;
-    pointer-events: auto;
-    min-block-size: var(--_container-min-block-size);
-    max-block-size: var(--_container-max-block-size);
-    min-inline-size: var(--_container-min-inline-size);
-    max-inline-size: var(--_container-max-inline-size);
-    padding-block-start: var(--_container-block-padding);
-    padding-block-end: var(--_container-block-padding);
+    overflow: hidden;
+    // needed to display scrollbars on Chrome linux. Also needs to be > 0 so
+    // that content that is position: fixed in the content can render above the
+    // actions bar. e.g. <md-select positioning="menu-fixed">
+    z-index: 1;
   }
 
-  md-elevation {
-    @include elevation.theme(
-      (
-        'level': var(--_container-elevation),
-      )
-    );
-  }
-
-  .container > * {
-    box-sizing: border-box;
-    // Apply pad left/right here so scrollbar is not indented.
-    padding-inline-start: var(--_container-inline-padding);
-    padding-inline-end: var(--_container-inline-padding);
-  }
-
-  .header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--_header-spacing);
-    -webkit-font-smoothing: antialiased;
-    color: var(--_headline-color);
-    font: var(--_headline-type);
+  .scrollable .scroller {
+    // Only add scrollbars if the content is overflowing. This prevents extra
+    // space from appearing on platforms that reserve scrollbar space.
+    // Note: we only scroll vertically. Horizontal scrolling should be handled
+    // by the content.
+    overflow-y: scroll;
   }
 
   .content {
-    flex: 1;
-    overflow: auto;
-    margin-block-start: var(--_content-block-start-spacing);
-    margin-block-end: var(--_content-block-end-spacing);
-    -webkit-font-smoothing: antialiased;
-    color: var(--_supporting-text-color);
-    font: var(--_supporting-text-type);
-  }
-
-  .footer {
-    display: flex;
+    color: map.get($tokens, 'supporting-text-color');
+    font-family: map.get($tokens, 'supporting-text-font');
+    font-size: map.get($tokens, 'supporting-text-size');
+    line-height: map.get($tokens, 'supporting-text-line-height');
+    font-weight: map.get($tokens, 'supporting-text-weight');
+    height: min-content; // Needed for Safari
     position: relative;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
+  }
+
+  slot[name='content']::slotted(*) {
     box-sizing: border-box;
-    gap: var(--_action-spacing);
+    padding: 24px;
   }
 
-  .footerHidden {
-    --_content-block-end-spacing: 0px;
+  // Anchors are used with an IntersectionObserver to determine when the content
+  // has scrolled.
+  .anchor {
+    position: absolute;
   }
 
-  .footerHidden .footer {
-    display: none;
+  .top.anchor {
+    top: 0;
   }
 
-  .stacked .footer {
-    flex-direction: column;
-    align-items: flex-end;
+  .bottom.anchor {
+    bottom: 0;
   }
 
-  .scrollable .content {
-    border-block-start: var(--_with-divider-divider-height) solid transparent;
-    border-block-end: var(--_with-divider-divider-height) solid transparent;
+  .actions {
+    position: relative;
   }
 
-  .scroll-divider-header .content {
-    border-block-start-color: var(--_with-divider-divider-color);
-  }
-
-  .scroll-divider-footer:not(.footerHidden) .content {
-    border-block-end-color: var(--_with-divider-divider-color);
-  }
-
-  // Transitions for open/closed states
-  .container {
-    will-change: transform, opacity;
-    transition-property: transform;
-    overflow: hidden;
-  }
-
-  .container > * {
-    transition-timing-function: inherit;
-    transition-duration: inherit;
-    transition-property: opacity, transform;
-    will-change: transform, opacity;
-    opacity: 0;
-  }
-
-  :host([transition][showing-open]) .container > * {
-    opacity: 1;
-    transform: none;
-  }
-
-  :host([transition][showing-open]) .container {
-    opacity: 1;
-    transform: none;
-  }
-
-  .dialog::before {
-    transition: background-color linear;
-    background-color: transparent;
-  }
-
-  :host([showing-open]) .dialog::before {
-    background-color: var(--_scrim-color);
-  }
-
-  :host([opening]) .dialog::before {
-    transition-duration: calc(var(--_opening-transition-duration) / 2);
-  }
-
-  :host([closing]) .dialog::before {
-    transition-duration: calc(var(--_closing-transition-duration) / 2);
-  }
-
-  :host([opening]) .container {
-    transition-duration: var(--_opening-transition-duration);
-    transition-timing-function: var(--_opening-transition-easing);
-  }
-
-  :host([closing]) .container {
-    transition-duration: var(--_closing-transition-duration);
-    transition-timing-function: var(--_closing-transition-easing);
-  }
-
-  :host([trasition][closing]) .container > * {
-    transform: none;
-    opacity: 0;
-  }
-
-  :host([transition='grow-down']) {
-    --_opening-transform: scale(1, 0.1) translateY(-20%);
-    --_closing-transform: scale(1, 0.9) translateY(-10%);
-    --_origin: top;
-    --_opening-content-transform: scale(1, 2);
-    --_origin-footer: bottom;
-  }
-
-  :host([transition='grow-up']) {
-    --_opening-transform: scale(1, 0.1) translateY(20%);
-    --_closing-transform: scale(1, 0.9) translateY(10%);
-    --_origin: bottom;
-    --_opening-content-transform: scale(1, 2);
-    --_origin-footer: bottom;
-  }
-
-  :host([transition='grow-left']) {
-    --_opening-transform: scale(0.1, 1) translateX(20%);
-    --_closing-transform: scale(0.9, 1) translateX(10%);
-    --_origin: right;
-    --_opening-content-transform: none;
-    --_origin-footer: none;
-  }
-
-  :host([transition='grow-right']) {
-    --_opening-transform: scale(0.1, 1) translateX(-20%);
-    --_closing-transform: scale(0.9, 1) translateX(-10%);
-    --_origin: left;
-    --_opening-content-transform: none;
-    --_origin-footer: none;
-  }
-
-  :host([transition^='grow-']) .container {
-    transform-origin: var(--_origin);
-    transform: var(--_opening-transform);
-  }
-
-  :host([transition^='grow-']) .container > * {
-    transform-origin: var(--_origin);
-    transform: var(--_opening-content-transform);
-  }
-
-  :host([transition^='grow-']) .footer {
-    transform-origin: var(--_origin-footer);
-  }
-
-  :host([transition^='grow-'][closing]) {
-    transform: var(--_closing-transform);
-  }
-
-  :host([transition='shrink']) .container {
-    transform: scale(1.2);
-  }
-
-  :host([transition='grow']) .container {
-    transform: scale(0.8);
-  }
-
-  :host([transition='shrink'][closing]) .container,
-  :host([transition='grow'][closing]) .container {
-    transition-duration: 0;
-    transform: none;
-  }
-
-  // fullscreen
-  :host([showing-fullscreen]) {
-    --_container-max-block-size: none;
-    --_container-max-inline-size: none;
-  }
-
-  :host([showing-fullscreen]) .container {
-    block-size: 100dvh;
-    inline-size: 100dvw;
-    border-radius: 0px;
-    padding-block-start: 0;
-    padding-block-end: 0;
-  }
-
-  :host([showing-fullscreen]) .header {
-    justify-content: space-between;
-    flex-direction: row;
-    max-block-size: 56px;
-    // Note, the 8px here is not per spec, but needed to make the explicit 56px not be cramped.
-    padding-block-start: 8px;
-    // TODO: should there be explicit tokens for these?
-    padding-inline: 4px;
-    --_header-spacing: 4px;
-  }
-
-  :host([showing-fullscreen]) .content {
-    margin-block-start: 0;
-    margin-block-end: 0;
-  }
-
-  :host([showing-fullscreen]) .footer {
-    max-block-size: 56px;
-    // Note, the 8px here is not per spec, but needed to make the explicit 56px not be cramped.
-    padding-block-end: 8px;
-  }
-
-  // Hide bottom divider on fullscreen since it's common not to have footer actions.
-  :host([showing-fullscreen]) .scroll-divider-footer .content {
-    border-block-end-color: transparent;
-  }
-
-  // High contrast mode
-  @media screen and (forced-colors: active), (-ms-high-contrast: active) {
-    .container {
-      outline: windowtext solid 2px;
-    }
-  }
-
-  // Slot styling
-  [name='headline-prefix']::slotted(*),
-  [name='headline-suffix']::slotted(*) {
-    color: var(--_icon-color);
-    font-size: var(--_icon-size);
-  }
-
-  [name='header']::slotted(*) {
-    flex: 1;
-    align-self: stretch;
+  slot[name='actions']::slotted(*) {
+    box-sizing: border-box;
     display: flex;
-    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+    padding: 16px 24px 24px;
   }
 
-  :host([showing-fullscreen]) [name='headline']::slotted(*) {
-    flex: 1;
+  .has-actions slot[name='content']::slotted(*) {
+    padding-bottom: 8px;
+  }
+
+  md-divider {
+    display: none;
+    position: absolute;
+  }
+
+  .has-headline.show-top-divider .headline md-divider,
+  .has-actions.show-bottom-divider .actions md-divider {
+    display: flex;
+  }
+
+  .headline md-divider {
+    bottom: 0;
+  }
+
+  .actions md-divider {
+    top: 0;
+  }
+
+  @media (forced-colors: active) {
+    dialog {
+      outline: 2px solid WindowText;
+    }
   }
 }

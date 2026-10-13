@@ -53,28 +53,51 @@ describe('Filter chip', () => {
       expect(chip.selected).withContext('chip.selected').toBeFalse();
     });
 
-    it('should dispatch "selected" event when selected changes programmatically',
-       async () => {
-         const {chip} = await setupTest();
-         const handler = jasmine.createSpy();
-         chip.addEventListener('selected', handler);
+    it('can prevent default', async () => {
+      const {chip, harness} = await setupTest();
+      const handler = jasmine.createSpy();
+      chip.addEventListener('selected', handler);
 
-         chip.selected = true;
-         await env.waitForStability();
-         chip.selected = false;
-         await env.waitForStability();
-         expect(handler).toHaveBeenCalledTimes(2);
-       });
+      chip.addEventListener('click', (event) => {
+        event.preventDefault();
+      });
 
-    it('should dispatch "selected" event when selected changes by click',
-       async () => {
-         const {chip, harness} = await setupTest();
-         const handler = jasmine.createSpy();
-         chip.addEventListener('selected', handler);
+      await harness.clickWithMouse();
+      await harness.clickWithMouse();
+      expect(handler).toHaveBeenCalledTimes(0);
+    });
 
-         await harness.clickWithMouse();
-         await harness.clickWithMouse();
-         expect(handler).toHaveBeenCalledTimes(2);
-       });
+    it('always reverts value on preventDefault() even if selected is changed in listener', async () => {
+      const {chip, harness} = await setupTest();
+
+      chip.addEventListener(
+        'click',
+        (event) => {
+          event.preventDefault();
+          chip.selected = false;
+        },
+        {once: true},
+      );
+
+      await harness.clickWithMouse();
+      expect(chip.selected)
+        .withContext('chip.selected reverts to false')
+        .toBeFalse();
+
+      chip.selected = true;
+      chip.addEventListener(
+        'click',
+        (event) => {
+          event.preventDefault();
+          chip.selected = false;
+        },
+        {once: true},
+      );
+
+      await harness.clickWithMouse();
+      expect(chip.selected)
+        .withContext('chip.selected reverts to true')
+        .toBeTrue();
+    });
   });
 });

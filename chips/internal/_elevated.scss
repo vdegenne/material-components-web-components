@@ -60,11 +60,7 @@
 
   @media (forced-colors: active) {
     .elevated md-elevation {
-      border: 1px solid transparent;
-    }
-
-    .elevated.link md-elevation {
-      border-color: ActiveText;
+      border: 1px solid CanvasText;
     }
 
     .elevated.disabled md-elevation {

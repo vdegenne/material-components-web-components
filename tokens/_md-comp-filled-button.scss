@@ -7,13 +7,13 @@
 @use 'sass:map';
 // go/keep-sorted end
 // go/keep-sorted start
+@use './internal/validate';
 @use './md-sys-color';
 @use './md-sys-elevation';
 @use './md-sys-shape';
 @use './md-sys-state';
 @use './md-sys-typescale';
-@use './v0_172/md-comp-filled-button';
-@use './values';
+@use './v0_192/md-comp-filled-button';
 // go/keep-sorted end
 
 $supported-tokens: (
@@ -41,18 +41,21 @@ $supported-tokens: (
   'icon-color',
   'icon-size',
   'label-text-color',
-  'label-text-type',
+  'label-text-font',
+  'label-text-line-height',
+  'label-text-size',
+  'label-text-weight',
+  'leading-space',
   'pressed-container-elevation',
   'pressed-icon-color',
   'pressed-label-text-color',
   'pressed-state-layer-color',
   'pressed-state-layer-opacity',
-  'spacing-leading',
-  'spacing-trailing',
-  'with-icon-spacing-leading',
-  'with-icon-spacing-trailing',
-  'with-trailing-icon-spacing-leading',
-  'with-trailing-icon-spacing-trailing',
+  'trailing-space',
+  'with-leading-icon-leading-space',
+  'with-leading-icon-trailing-space',
+  'with-trailing-icon-leading-space',
+  'with-trailing-icon-trailing-space',
   // go/keep-sorted end
 );
 
@@ -60,11 +63,8 @@ $unsupported-tokens: (
   // go/keep-sorted start
   'focus-state-layer-color',
   'focus-state-layer-opacity',
-  'label-text-font',
-  'label-text-line-height',
-  'label-text-size',
   'label-text-tracking',
-  'label-text-weight',
+  'label-text-type',
   // go/keep-sorted end
 );
 
@@ -77,20 +77,22 @@ $_default: (
 );
 
 @function values($deps: $_default, $exclude-hardcoded-values: false) {
-  $tokens: values.validate(
+  $tokens: validate.values(
     md-comp-filled-button.values($deps, $exclude-hardcoded-values),
     $supported-tokens: $supported-tokens,
     $unsupported-tokens: $unsupported-tokens,
     $new-tokens: (
-      // TODO(b/198759625): Remove once spacing tokens are formally added
+      // b/198759625 - Remove once spacing tokens are formally added
       // go/keep-sorted start
-      'spacing-leading': if($exclude-hardcoded-values, null, 24px),
-      'spacing-trailing': if($exclude-hardcoded-values, null, 24px),
-      'with-icon-spacing-leading': if($exclude-hardcoded-values, null, 16px),
-      'with-icon-spacing-trailing': if($exclude-hardcoded-values, null, 24px),
-      'with-trailing-icon-spacing-leading':
+      'leading-space': if($exclude-hardcoded-values, null, 24px),
+      'trailing-space': if($exclude-hardcoded-values, null, 24px),
+      'with-leading-icon-leading-space':
+        if($exclude-hardcoded-values, null, 16px),
+      'with-leading-icon-trailing-space':
         if($exclude-hardcoded-values, null, 24px),
-      'with-trailing-icon-spacing-trailing':
+      'with-trailing-icon-leading-space':
+        if($exclude-hardcoded-values, null, 24px),
+      'with-trailing-icon-trailing-space':
         if($exclude-hardcoded-values, null, 16px),
       // go/keep-sorted end
     ),
@@ -103,14 +105,6 @@ $_default: (
       'with-icon-icon-color': 'icon-color',
       'with-icon-icon-size': 'icon-size',
       'with-icon-pressed-icon-color': 'pressed-icon-color'
-    )
-  );
-
-  // TODO(b/271876162): remove when tokens compiler emits typescale tokens
-  $tokens: map.merge(
-    $tokens,
-    (
-      'label-text-type': map.get($deps, 'md-sys-typescale', 'label-large'),
     )
   );
 

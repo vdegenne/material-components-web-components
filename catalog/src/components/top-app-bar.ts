@@ -5,10 +5,10 @@
  */
 
 import '@material/web/focus/md-focus-ring.js';
-import '@material/web/iconbutton/standard-icon-button.js';
 import '@material/web/icon/icon.js';
+import '@material/web/iconbutton/icon-button.js';
 
-import type {MdStandardIconButton} from '@material/web/iconbutton/standard-icon-button.js';
+import type {MdIconButton} from '@material/web/iconbutton/icon-button.js';
 import {css, html, LitElement} from 'lit';
 import {customElement, query, state} from 'lit/decorators.js';
 import {live} from 'lit/directives/live.js';
@@ -21,33 +21,40 @@ import {materialDesign} from '../svg/material-design-logo.js';
 /**
  * Top app bar of the catalog.
  */
-@customElement('top-app-bar') export class TopAppBar extends SignalElement
-(LitElement) {
+@customElement('top-app-bar')
+export class TopAppBar extends SignalElement(LitElement) {
   /**
    * Whether or not the color picker menu is open.
    */
   @state() private menuOpen = false;
-
-  @query('.end md-standard-icon-button')
-  private paletteButton!: MdStandardIconButton;
+  @query('theme-changer') private themeChanger!: HTMLElement;
 
   render() {
     return html`
       <header>
         <div class="default-content">
           <section class="start">
-            <md-standard-icon-button
+            <md-icon-button
               toggle
               class="menu-button"
-              .selected=${live(drawerOpenSignal.value)}
-              @input=${this.onMenuIconToggle}
-            >
-              <span><md-icon>menu</md-icon></span>
-              <span slot="selectedIcon"><md-icon>menu_open</md-icon></span>
-            </md-standard-icon-button>
-            <md-standard-icon-button href="/" class="home-button">
+              aria-label-selected="open navigation menu"
+              aria-label="close navigation menu"
+              aria-expanded=${drawerOpenSignal.value ? 'false' : 'true'}
+              title="${!drawerOpenSignal.value
+                ? 'Open'
+                : 'Close'} navigation menu"
+              .selected=${live(!drawerOpenSignal.value)}
+              @input=${this.onMenuIconToggle}>
+              <md-icon slot="selected">menu</md-icon>
+              <md-icon>menu_open</md-icon>
+            </md-icon-button>
+            <md-icon-button
+              href="/"
+              class="home-button"
+              title="Home"
+              aria-label="Home">
               ${materialDesign}
-            </md-standard-icon-button>
+            </md-icon-button>
           </section>
 
           <a href="/" id="home-link">
@@ -55,25 +62,37 @@ import {materialDesign} from '../svg/material-design-logo.js';
             <md-focus-ring for="home-link"></md-focus-ring>
           </a>
 
+          <a id="skip-to-main" href="#main-content" tabindex="0">
+            Skip to main content
+          </a>
+
           <section class="end">
             <lit-island
               on:interaction="pointerenter,focusin,pointerdown"
               import="/js/hydration-entrypoints/menu.js"
-              id="menu-island"
-            >
+              id="menu-island">
+              <md-icon-button
+                id="theme-button"
+                @click="${this.onPaletteClick}"
+                title="Page theme controls"
+                aria-label="Page theme controls"
+                aria-haspopup="dialog"
+                aria-expanded=${this.menuOpen ? 'true' : 'false'}>
+                <md-icon>palette</md-icon>
+              </md-icon-button>
               <md-menu
-                .anchor=${this.paletteButton}
-                menu-corner="START_END"
-                anchor-corner="END_END"
-                stay-open-on-focusout
+                anchor="theme-button"
+                menu-corner="start-end"
+                anchor-corner="end-end"
+                default-focus="none"
+                role="dialog"
+                aria-label="Page color theme controls"
                 .open=${this.menuOpen}
+                @opened=${this.onMenuOpened}
                 @closed=${this.onMenuClosed}
-              >
+                @keydown=${this.onKeydown}>
                 <theme-changer></theme-changer>
               </md-menu>
-              <md-standard-icon-button @click="${this.onPaletteClick}">
-                <md-icon>palette</md-icon>
-              </md-standard-icon-button>
             </lit-island>
           </section>
         </div>
@@ -102,11 +121,22 @@ import {materialDesign} from '../svg/material-design-logo.js';
     inertSidebarSignal.value = false;
   }
 
+  private onMenuOpened() {
+    this.themeChanger.focus();
+  }
+
+  private onKeydown(e: KeyboardEvent) {
+    if (!e.defaultPrevented && e.key === 'Escape') {
+      e.preventDefault();
+      this.menuOpen = false;
+    }
+  }
+
   /**
    * Toggles the sidebar's open state.
    */
   private onMenuIconToggle(e: InputEvent) {
-    drawerOpenSignal.value = (e.target as MdStandardIconButton).selected;
+    drawerOpenSignal.value = !(e.target as MdIconButton).selected;
   }
 
   static styles = css`
@@ -121,9 +151,8 @@ import {materialDesign} from '../svg/material-design-logo.js';
       inset: 0 0 auto 0;
       display: flex;
       align-items: center;
-      padding-block-start: var(--catalog-spacing-m);
       box-sizing: border-box;
-      padding: var(--catalog-spacing-m) var(--catalog-spacing-s);
+      padding: var(--catalog-spacing-m) var(--catalog-spacing-l);
       background-color: var(--md-sys-color-surface-container);
       color: var(--md-sys-color-on-surface);
       z-index: 12;
@@ -135,14 +164,14 @@ import {materialDesign} from '../svg/material-design-logo.js';
       align-items: center;
     }
 
-    md-standard-icon-button:not(:defined) {
+    md-icon-button:not(:defined) {
       width: 40px;
       height: 40px;
       display: flex;
       visibility: hidden;
     }
 
-    md-standard-icon-button * {
+    md-icon-button * {
       display: block;
     }
 
@@ -172,6 +201,21 @@ import {materialDesign} from '../svg/material-design-logo.js';
 
     #menu-island {
       position: relative;
+    }
+
+    #skip-to-main {
+      padding: var(--catalog-spacing-s);
+      border-radius: var(--catalog-shape-m);
+      background-color: var(--md-sys-color-inverse-surface);
+      color: var(--md-sys-color-inverse-on-surface);
+      opacity: 0;
+      position: absolute;
+      pointer-events: none;
+    }
+
+    #skip-to-main:focus-visible {
+      opacity: 1;
+      pointer-events: auto;
     }
 
     @media (max-width: 1500px) {

@@ -4,11 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {html, LitElement, PropertyValues} from 'lit';
+import {html, isServer, LitElement, PropertyValues} from 'lit';
 import {property, query, state} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 
-import {Attachable, AttachableController} from '../../internal/controller/attachable-controller.js';
+import {
+  Attachable,
+  AttachableController,
+} from '../../internal/controller/attachable-controller.js';
 import {EASING} from '../../internal/motion/animation.js';
 
 const PRESS_GROW_MS = 450;
@@ -62,15 +65,20 @@ enum State {
    * Transitions:
    *   - on click end press; transition to `INACTIVE`.
    */
-  WAITING_FOR_CLICK
+  WAITING_FOR_CLICK,
 }
 
 /**
  * Events that the ripple listens to.
  */
 const EVENTS = [
-  'click', 'contextmenu', 'pointercancel', 'pointerdown', 'pointerenter',
-  'pointerleave', 'pointerup'
+  'click',
+  'contextmenu',
+  'pointercancel',
+  'pointerdown',
+  'pointerenter',
+  'pointerleave',
+  'pointerup',
 ];
 
 /**
@@ -78,6 +86,14 @@ const EVENTS = [
  * scroll interaction.
  */
 const TOUCH_DELAY_MS = 150;
+
+/**
+ * Used to detect if HCM is active. Events do not process during HCM when the
+ * ripple is not displayed.
+ */
+const FORCED_COLORS = isServer
+  ? null
+  : window.matchMedia('(forced-colors: active)');
 
 /**
  * A ripple component.
@@ -92,18 +108,21 @@ export class Ripple extends LitElement implements Attachable {
     return this.attachableController.htmlFor;
   }
 
-  set htmlFor(htmlFor: string|null) {
+  set htmlFor(htmlFor: string | null) {
     this.attachableController.htmlFor = htmlFor;
   }
 
   get control() {
     return this.attachableController.control;
   }
+  set control(control: HTMLElement | null) {
+    this.attachableController.control = control;
+  }
 
   @state() private hovered = false;
   @state() private pressed = false;
 
-  @query('.surface') private readonly mdRoot!: HTMLElement|null;
+  @query('.surface') private readonly mdRoot!: HTMLElement | null;
   private rippleSize = '';
   private rippleScale = '';
   private initialSize = 0;
@@ -111,8 +130,10 @@ export class Ripple extends LitElement implements Attachable {
   private state = State.INACTIVE;
   private rippleStartEvent?: PointerEvent;
   private checkBoundsAfterContextMenu = false;
-  private readonly attachableController =
-      new AttachableController(this, this.onControlChange.bind(this));
+  private readonly attachableController = new AttachableController(
+    this,
+    this.onControlChange.bind(this),
+  );
 
   attach(control: HTMLElement) {
     this.attachableController.attach(control);
@@ -120,6 +141,13 @@ export class Ripple extends LitElement implements Attachable {
 
   detach() {
     this.attachableController.detach();
+  }
+
+  override connectedCallback() {
+    super.connectedCallback();
+    // Needed for VoiceOver, which will create a "group" if the element is a
+    // sibling to other content.
+    this.setAttribute('aria-hidden', 'true');
   }
 
   protected override render() {
@@ -131,7 +159,7 @@ export class Ripple extends LitElement implements Attachable {
     return html`<div class="surface ${classMap(classes)}"></div>`;
   }
 
-  protected override update(changedProps: PropertyValues<this>) {
+  protected override update(changedProps: PropertyValues<Ripple>) {
     if (changedProps.has('disabled') && this.disabled) {
       this.hovered = false;
       this.pressed = false;
@@ -208,7 +236,7 @@ export class Ripple extends LitElement implements Attachable {
 
     // Wait for a hold after touch delay
     this.state = State.TOUCH_DELAY;
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       setTimeout(resolve, TOUCH_DELAY_MS);
     });
 
@@ -259,8 +287,10 @@ export class Ripple extends LitElement implements Attachable {
   private determineRippleSize() {
     const {height, width} = this.getBoundingClientRect();
     const maxDim = Math.max(height, width);
-    const softEdgeSize =
-        Math.max(SOFT_EDGE_CONTAINER_RATIO * maxDim, SOFT_EDGE_MINIMUM_SIZE);
+    const softEdgeSize = Math.max(
+      SOFT_EDGE_CONTAINER_RATIO * maxDim,
+      SOFT_EDGE_MINIMUM_SIZE,
+    );
 
     const initialSize = Math.floor(maxDim * INITIAL_ORIGIN_SCALE);
     const hypotenuse = Math.sqrt(width ** 2 + height ** 2);
@@ -271,8 +301,10 @@ export class Ripple extends LitElement implements Attachable {
     this.rippleSize = `${initialSize}px`;
   }
 
-  private getNormalizedPointerEventCoords(pointerEvent: PointerEvent):
-      {x: number, y: number} {
+  private getNormalizedPointerEventCoords(pointerEvent: PointerEvent): {
+    x: number;
+    y: number;
+  } {
     const {scrollX, scrollY} = window;
     const {left, top} = this.getBoundingClientRect();
     const documentX = scrollX + left;
@@ -301,8 +333,8 @@ export class Ripple extends LitElement implements Attachable {
 
     // center around start point
     startPoint = {
-      x: startPoint.x - (this.initialSize / 2),
-      y: startPoint.y - (this.initialSize / 2),
+      x: startPoint.x - this.initialSize / 2,
+      y: startPoint.y - this.initialSize / 2,
     };
 
     return {startPoint, endPoint};
@@ -317,47 +349,47 @@ export class Ripple extends LitElement implements Attachable {
     this.growAnimation?.cancel();
     this.determineRippleSize();
     const {startPoint, endPoint} =
-        this.getTranslationCoordinates(positionEvent);
+      this.getTranslationCoordinates(positionEvent);
     const translateStart = `${startPoint.x}px, ${startPoint.y}px`;
     const translateEnd = `${endPoint.x}px, ${endPoint.y}px`;
 
     this.growAnimation = this.mdRoot.animate(
-        {
-          top: [0, 0],
-          left: [0, 0],
-          height: [this.rippleSize, this.rippleSize],
-          width: [this.rippleSize, this.rippleSize],
-          transform: [
-            `translate(${translateStart}) scale(1)`,
-            `translate(${translateEnd}) scale(${this.rippleScale})`
-          ],
-        },
-        {
-          pseudoElement: PRESS_PSEUDO,
-          duration: PRESS_GROW_MS,
-          easing: EASING.STANDARD,
-          fill: ANIMATION_FILL
-        });
+      {
+        top: [0, 0],
+        left: [0, 0],
+        height: [this.rippleSize, this.rippleSize],
+        width: [this.rippleSize, this.rippleSize],
+        transform: [
+          `translate(${translateStart}) scale(1)`,
+          `translate(${translateEnd}) scale(${this.rippleScale})`,
+        ],
+      },
+      {
+        pseudoElement: PRESS_PSEUDO,
+        duration: PRESS_GROW_MS,
+        easing: EASING.STANDARD,
+        fill: ANIMATION_FILL,
+      },
+    );
   }
 
   private async endPressAnimation() {
+    this.rippleStartEvent = undefined;
     this.state = State.INACTIVE;
     const animation = this.growAnimation;
-    const pressAnimationPlayState = animation?.currentTime ?? Infinity;
-    // TODO: go/ts51upgrade - Auto-added to unblock TS5.1 migration.
-    //   TS2365: Operator '>=' cannot be applied to types 'CSSNumberish' and
-    //   'number'.
-    // @ts-ignore
+    let pressAnimationPlayState = Infinity;
+    if (typeof animation?.currentTime === 'number') {
+      pressAnimationPlayState = animation.currentTime;
+    } else if (animation?.currentTime) {
+      pressAnimationPlayState = animation.currentTime.to('ms').value;
+    }
+
     if (pressAnimationPlayState >= MINIMUM_PRESS_MS) {
       this.pressed = false;
       return;
     }
 
-    await new Promise(resolve => {
-      // TODO: go/ts51upgrade - Auto-added to unblock TS5.1 migration.
-      //   TS2363: The right-hand side of an arithmetic operation must be of
-      //   type 'any', 'number', 'bigint' or an enum type.
-      // @ts-ignore
+    await new Promise((resolve) => {
       setTimeout(resolve, MINIMUM_PRESS_MS - pressAnimationPlayState);
     });
 
@@ -384,8 +416,10 @@ export class Ripple extends LitElement implements Attachable {
       return false;
     }
 
-    if (this.rippleStartEvent &&
-        this.rippleStartEvent.pointerId !== event.pointerId) {
+    if (
+      this.rippleStartEvent &&
+      this.rippleStartEvent.pointerId !== event.pointerId
+    ) {
       return false;
     }
 
@@ -413,6 +447,11 @@ export class Ripple extends LitElement implements Attachable {
 
   /** @private */
   async handleEvent(event: Event) {
+    if (FORCED_COLORS?.matches) {
+      // Skip event logic since the ripple is `display: none`.
+      return;
+    }
+
     switch (event.type) {
       case 'click':
         this.handleClick();
@@ -440,7 +479,9 @@ export class Ripple extends LitElement implements Attachable {
     }
   }
 
-  private onControlChange(prev: HTMLElement|null, next: HTMLElement|null) {
+  private onControlChange(prev: HTMLElement | null, next: HTMLElement | null) {
+    if (isServer) return;
+
     for (const event of EVENTS) {
       prev?.removeEventListener(event, this);
       next?.addEventListener(event, this);

@@ -103,8 +103,9 @@ export function getUnusedTokens(styles: CSSResult[]) {
   return unusedTokens;
 }
 
-function getDefinedTokensFromRule(rule: CSSRule|CSSStyleSheet|
-                                  CSSStyleRule): Set<string> {
+function getDefinedTokensFromRule(
+  rule: CSSRule | CSSStyleSheet | CSSStyleRule,
+): Set<string> {
   let defined = new Set<string>();
   if ('cssRules' in rule) {
     // Rule is either a CSSStyleSheet, CSSKeyframesRule, or one of the
@@ -125,8 +126,9 @@ function getDefinedTokensFromRule(rule: CSSRule|CSSStyleSheet|
   return defined;
 }
 
-function getUsedTokensFromRule(rule: CSSRule|CSSStyleSheet|
-                               CSSStyleRule): Set<string> {
+function getUsedTokensFromRule(
+  rule: CSSRule | CSSStyleSheet | CSSStyleRule,
+): Set<string> {
   let used = new Set<string>();
   if ('cssRules' in rule) {
     // Rule is either a CSSStyleSheet, CSSKeyframesRule, or one of the
@@ -141,7 +143,10 @@ function getUsedTokensFromRule(rule: CSSRule|CSSStyleSheet|
     // Check them explicitly as well for properties like border-radius.
     for (const property of [...rule.style, ...CSS_SHORTHAND_PROPERTIES]) {
       const value = rule.style.getPropertyValue(property);
-      for (const match of value.matchAll(/--_[\w-]+/g)) {
+      // match css custom properties of --_ but not --__ as --_ are tokens and
+      // --__ are private custom properties used for our convenience not to be
+      // exposed to users.
+      for (const match of value.matchAll(/--_(?!_)[\w-]+/g)) {
         used.add(match[0]);
       }
     }

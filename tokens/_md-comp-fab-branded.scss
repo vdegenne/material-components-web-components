@@ -7,15 +7,15 @@
 @use 'sass:map';
 // go/keep-sorted end
 // go/keep-sorted start
+@use './internal/validate';
 @use './md-sys-color';
 @use './md-sys-elevation';
 @use './md-sys-shape';
 @use './md-sys-state';
 @use './md-sys-typescale';
-@use './v0_172/md-comp-extended-fab-branded';
-@use './v0_172/md-comp-fab-branded';
-@use './v0_172/md-comp-fab-branded-large';
-@use './values';
+@use './v0_192/md-comp-extended-fab-branded';
+@use './v0_192/md-comp-fab-branded';
+@use './v0_192/md-comp-fab-branded-large';
 // go/keep-sorted end
 
 $supported-tokens: (
@@ -34,7 +34,10 @@ $supported-tokens: (
   'hover-state-layer-opacity',
   'icon-size',
   'label-text-color',
-  'label-text-type',
+  'label-text-font',
+  'label-text-line-height',
+  'label-text-size',
+  'label-text-weight',
   'large-container-height',
   'large-container-shape',
   'large-container-width',
@@ -74,7 +77,11 @@ $unsupported-tokens: (
     'hover-label-text-color':
       map.get($extended-branded-tokens, 'hover-label-text-color'),
     'label-text-color': map.get($extended-branded-tokens, 'label-text-color'),
-    'label-text-type': map.get($extended-branded-tokens, 'label-text-type'),
+    'label-text-font': map.get($extended-branded-tokens, 'label-text-font'),
+    'label-text-size': map.get($extended-branded-tokens, 'label-text-size'),
+    'label-text-line-height':
+      map.get($extended-branded-tokens, 'label-text-line-height'),
+    'label-text-weight': map.get($extended-branded-tokens, 'label-text-weight'),
     'large-container-height': map.get($large-tokens, 'container-height'),
     'large-container-shape': map.get($large-tokens, 'container-shape'),
     'large-container-width': map.get($large-tokens, 'container-width'),
@@ -93,19 +100,11 @@ $_default: (
 );
 
 @function values($deps: $_default, $exclude-hardcoded-values: false) {
-  $tokens: values.validate(
+  $tokens: validate.values(
     md-comp-fab-branded.values($deps, $exclude-hardcoded-values),
     $supported-tokens: $supported-tokens,
     $unsupported-tokens: $unsupported-tokens,
     $new-tokens: _get-new-tokens($deps, $exclude-hardcoded-values)
-  );
-
-  // TODO(b/271876162): remove when tokens compiler emits typescale tokens
-  $tokens: map.merge(
-    $tokens,
-    (
-      'label-text-type': map.get($deps, 'md-sys-typescale', 'label-large'),
-    )
   );
 
   @return $tokens;

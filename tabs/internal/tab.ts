@@ -8,173 +8,210 @@ import '../../elevation/elevation.js';
 import '../../focus/md-focus-ring.js';
 import '../../ripple/ripple.js';
 
-import {html, isServer, LitElement, nothing, PropertyValues} from 'lit';
-import {property, query} from 'lit/decorators.js';
-import {classMap} from 'lit/directives/class-map.js';
+import {html, isServer, LitElement, nothing} from 'lit';
+import {
+  property,
+  query,
+  queryAssignedElements,
+  queryAssignedNodes,
+  state,
+} from 'lit/decorators.js';
+import {ClassInfo, classMap} from 'lit/directives/class-map.js';
 
-import {ARIAMixinStrict} from '../../internal/aria/aria.js';
-import {requestUpdateOnAriaChange} from '../../internal/aria/delegate.js';
-import {dispatchActivationClick, isActivationClick} from '../../internal/controller/events.js';
-
-/**
- * An element that can select items.
- */
-export interface Tabs extends HTMLElement {
-  selected?: number;
-  selectedItem?: Tab;
-  previousSelectedItem?: Tab;
-}
+import {EASING} from '../../internal/motion/animation.js';
+import {mixinFocusable} from '../../labs/behaviors/focusable.js';
 
 /**
- * Tab variant can be `primary` or `secondary`.
+ * Symbol for tabs to use to animate their indicators based off another tab's
+ * indicator.
  */
-export type TabVariant = 'primary'|'secondary';
+const INDICATOR = Symbol('indicator');
+
+/**
+ * Symbol used by the tab bar to request a tab to animate its indicator from a
+ * previously selected tab.
+ */
+export const ANIMATE_INDICATOR = Symbol('animateIndicator');
+
+// Separate variable needed for closure.
+const tabBaseClass = mixinFocusable(LitElement);
 
 /**
  * Tab component.
  */
-export class Tab extends LitElement {
-  static {
-    requestUpdateOnAriaChange(this);
+export class Tab extends tabBaseClass {
+  /**
+   * The attribute `md-tab` indicates that the element is a tab for the parent
+   * element, `<md-tabs>`. Make sure if you're implementing your own `md-tab`
+   * component that you have an `md-tab` attribute set.
+   */
+  @property({type: Boolean, reflect: true, attribute: 'md-tab'})
+  readonly isTab = true;
+
+  /**
+   * Whether or not the tab is selected.
+   **/
+  @property({type: Boolean, reflect: true}) active = false;
+
+  /**
+   * TODO(b/293476210): remove after migrating
+   * @deprecated use `active`
+   */
+  @property({type: Boolean})
+  get selected() {
+    return this.active;
+  }
+  set selected(active: boolean) {
+    this.active = active;
   }
 
-  /** @nocollapse */
-  static override shadowRootOptions:
-      ShadowRootInit = {mode: 'open', delegatesFocus: true};
-
   /**
-   * Styling variant to display, 'primary' (default) or 'secondary'.
+   * In SSR, set this to true when an icon is present.
    */
-  @property({reflect: true}) variant: TabVariant = 'primary';
+  @property({type: Boolean, attribute: 'has-icon'}) hasIcon = false;
 
   /**
-   * Whether or not the tab is `disabled`.
+   * In SSR, set this to true when there is no label and only an icon.
    */
-  @property({type: Boolean, reflect: true}) disabled = false;
+  @property({type: Boolean, attribute: 'icon-only'}) iconOnly = false;
 
-  /**
-   * Whether or not the tab is `selected`.
-   **/
-  @property({type: Boolean, reflect: true}) selected = false;
-
-  /**
-   * Whether or not the tab is `focusable`.
-   */
-  @property({type: Boolean}) focusable = false;
-
-  /**
-   * Whether or not the icon renders inline with label or stacked vertically.
-   */
-  @property({type: Boolean, attribute: 'inline-icon'}) inlineIcon = false;
-
-  @query('.button') private readonly button!: HTMLElement|null;
-
-  // note, this is public so it can participate in selection animation.
-  /**
-   * Selection indicator element.
-   */
-  @query('.indicator') readonly indicator!: HTMLElement;
+  @query('.indicator') readonly [INDICATOR]!: HTMLElement | null;
+  @state() protected fullWidthIndicator = false;
+  @queryAssignedNodes({flatten: true})
+  private readonly assignedDefaultNodes!: Node[];
+  @queryAssignedElements({slot: 'icon', flatten: true})
+  private readonly assignedIcons!: HTMLElement[];
+  private readonly internals =
+    // Cast needed for closure
+    (this as HTMLElement).attachInternals();
 
   constructor() {
     super();
     if (!isServer) {
-      this.addEventListener('click', this.handleActivationClick);
+      this.internals.role = 'tab';
+      this.addEventListener('keydown', this.handleKeydown.bind(this));
     }
-  }
-
-  override focus() {
-    this.button?.focus();
-  }
-
-  override blur() {
-    this.button?.blur();
   }
 
   protected override render() {
-    const contentClasses = {
-      'inline-icon': this.inlineIcon,
+    const indicator = html`<div class="indicator"></div>`;
+    return html`<div
+      class="button"
+      role="presentation"
+      @click=${this.handleContentClick}>
+      <md-focus-ring part="focus-ring" inward .control=${this}></md-focus-ring>
+      <md-elevation></md-elevation>
+      <md-ripple .control=${this}></md-ripple>
+      <div
+        class="content ${classMap(this.getContentClasses())}"
+        role="presentation">
+        <slot name="icon" @slotchange=${this.handleIconSlotChange}></slot>
+        <slot @slotchange=${this.handleSlotChange}></slot>
+        ${this.fullWidthIndicator ? nothing : indicator}
+      </div>
+      ${this.fullWidthIndicator ? indicator : nothing}
+    </div>`;
+  }
+
+  protected getContentClasses(): ClassInfo {
+    return {
+      'has-icon': this.hasIcon,
+      'has-label': !this.iconOnly,
     };
-    // Needed for closure conformance
-    const {ariaLabel} = this as ARIAMixinStrict;
-    return html`
-      <button
-        class="button"
-        role="tab"
-        .tabIndex=${this.focusable && !this.disabled ? 0 : -1}
-        aria-selected=${this.selected ? 'true' : 'false'}
-        ?disabled=${this.disabled}
-        aria-label=${ariaLabel || nothing}
-      >
-        <md-focus-ring part="focus-ring" inward></md-focus-ring>
-        <md-elevation></md-elevation>
-        <md-ripple ?disabled=${this.disabled}></md-ripple>
-        <span class="touch"></span>
-        <div class="content ${classMap(contentClasses)}">
-          <slot name="icon"></slot>
-          <span class="label">
-            <slot></slot>
-          </span>
-          <div class="indicator"></div>
-        </div>
-      </button>`;
   }
 
-  protected override updated(changed: PropertyValues) {
-    if (changed.has('selected') && !this.disabled) {
-      this.animateSelected();
-    }
+  protected override updated() {
+    this.internals.ariaSelected = String(this.active);
   }
 
-  private readonly handleActivationClick = (event: MouseEvent) => {
-    if (!isActivationClick((event)) || !this.button) {
+  private async handleKeydown(event: KeyboardEvent) {
+    // Allow event to bubble.
+    await 0;
+    if (event.defaultPrevented) {
       return;
     }
-    this.focus();
-    dispatchActivationClick(this.button);
-  };
 
-  private get tabs() {
-    return this.parentElement as Tabs;
+    if (event.key === 'Enter' || event.key === ' ') {
+      // Prevent default behavior such as scrolling when pressing spacebar.
+      event.preventDefault();
+      this.click();
+    }
   }
 
-  private animateSelected() {
-    this.indicator.getAnimations().forEach(a => {
+  private handleContentClick(event: Event) {
+    // Ensure the "click" target is always the tab, and not content, by stopping
+    // propagation of content clicks and re-clicking the host.
+    event.stopPropagation();
+    this.click();
+  }
+
+  [ANIMATE_INDICATOR](previousTab: Tab) {
+    if (!this[INDICATOR]) {
+      return;
+    }
+
+    this[INDICATOR].getAnimations().forEach((a) => {
       a.cancel();
     });
-    const frames = this.getKeyframes();
+    const frames = this.getKeyframes(previousTab);
     if (frames !== null) {
-      this.indicator.animate(frames, {duration: 400, easing: 'ease-out'});
+      this[INDICATOR].animate(frames, {
+        duration: 250,
+        easing: EASING.EMPHASIZED,
+      });
     }
   }
 
-  private getKeyframes() {
+  private getKeyframes(previousTab: Tab) {
     const reduceMotion = shouldReduceMotion();
-    if (!this.selected) {
+    if (!this.active) {
       return reduceMotion ? [{'opacity': 1}, {'transform': 'none'}] : null;
     }
+
     const from: Keyframe = {};
-    // TODO(b/293506179): remove vertical logic
-    const isVertical = false;
     const fromRect =
-        (this.tabs?.previousSelectedItem?.indicator.getBoundingClientRect() ??
-         ({} as DOMRect));
-    const fromPos = isVertical ? fromRect.top : fromRect.left;
-    const fromExtent = isVertical ? fromRect.height : fromRect.width;
-    const toRect = this.indicator.getBoundingClientRect();
-    const toPos = isVertical ? toRect.top : toRect.left;
-    const toExtent = isVertical ? toRect.height : toRect.width;
-    const axis = isVertical ? 'Y' : 'X';
+      previousTab[INDICATOR]?.getBoundingClientRect() ?? ({} as DOMRect);
+    const fromPos = fromRect.left;
+    const fromExtent = fromRect.width;
+    const toRect = this[INDICATOR]!.getBoundingClientRect();
+    const toPos = toRect.left;
+    const toExtent = toRect.width;
     const scale = fromExtent / toExtent;
-    if (!reduceMotion && fromPos !== undefined && toPos !== undefined &&
-        !isNaN(scale)) {
-      from['transform'] = `translate${axis}(${
-          (fromPos - toPos).toFixed(4)}px) scale${axis}(${scale.toFixed(4)})`;
+    if (
+      !reduceMotion &&
+      fromPos !== undefined &&
+      toPos !== undefined &&
+      !isNaN(scale)
+    ) {
+      from['transform'] = `translateX(${(fromPos - toPos).toFixed(
+        4,
+      )}px) scaleX(${scale.toFixed(4)})`;
     } else {
       from['opacity'] = 0;
     }
     // note, including `transform: none` avoids quirky Safari behavior
     // that can hide the animation.
     return [from, {'transform': 'none'}];
+  }
+
+  private handleSlotChange() {
+    this.iconOnly = false;
+    // Check if there's any label text or elements. If not, then there is only
+    // an icon.
+    for (const node of this.assignedDefaultNodes) {
+      const hasTextContent =
+        node.nodeType === Node.TEXT_NODE &&
+        !!(node as Text).wholeText.match(/\S/);
+      if (node.nodeType === Node.ELEMENT_NODE || hasTextContent) {
+        return;
+      }
+    }
+
+    this.iconOnly = true;
+  }
+
+  private handleIconSlotChange() {
+    this.hasIcon = this.assignedIcons.length > 0;
   }
 }
 

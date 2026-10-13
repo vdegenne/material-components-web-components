@@ -7,31 +7,45 @@
 import '../../focus/md-focus-ring.js';
 import '../../ripple/ripple.js';
 
-import {html, isServer, LitElement, nothing, TemplateResult} from 'lit';
+import {html, isServer, LitElement, nothing} from 'lit';
 import {property, query, queryAssignedElements} from 'lit/decorators.js';
-import {classMap} from 'lit/directives/class-map.js';
-import {html as staticHtml, literal} from 'lit/static-html.js';
 
 import {ARIAMixinStrict} from '../../internal/aria/aria.js';
 import {requestUpdateOnAriaChange} from '../../internal/aria/delegate.js';
-import {dispatchActivationClick, isActivationClick, redispatchEvent} from '../../internal/controller/events.js';
+import {
+  FormSubmitter,
+  setupFormSubmitter,
+  type FormSubmitterType,
+} from '../../internal/controller/form-submitter.js';
+import {
+  dispatchActivationClick,
+  isActivationClick,
+} from '../../internal/events/form-label-activation.js';
+import {
+  internals,
+  mixinElementInternals,
+} from '../../labs/behaviors/element-internals.js';
+
+// Separate variable needed for closure.
+const buttonBaseClass = mixinElementInternals(LitElement);
 
 /**
  * A button component.
  */
-export abstract class Button extends LitElement {
+export abstract class Button extends buttonBaseClass implements FormSubmitter {
   static {
-    requestUpdateOnAriaChange(this);
+    requestUpdateOnAriaChange(Button);
+    setupFormSubmitter(Button);
   }
 
   /** @nocollapse */
-  static get formAssociated() {
-    return true;
-  }
+  static readonly formAssociated = true;
 
   /** @nocollapse */
-  static override shadowRootOptions:
-      ShadowRootInit = {mode: 'open', delegatesFocus: true};
+  static override shadowRootOptions: ShadowRootInit = {
+    mode: 'open',
+    delegatesFocus: true,
+  };
 
   /**
    * Whether or not the button is disabled.
@@ -41,13 +55,13 @@ export abstract class Button extends LitElement {
   /**
    * The URL that the link button points to.
    */
-  @property() href?: string;
+  @property() href = '';
 
   /**
    * Where to display the linked `href` URL for a link button. Common options
    * include `_blank` to open in a new tab.
    */
-  @property() target?: string;
+  @property() target: '_blank' | '_parent' | '_self' | '_top' | '' = '';
 
   /**
    * Whether to render the icon at the inline end of the label rather than the
@@ -55,30 +69,45 @@ export abstract class Button extends LitElement {
    *
    * _Note:_ Link buttons cannot have trailing icons.
    */
-  @property({type: Boolean, attribute: 'trailing-icon'}) trailingIcon = false;
+  @property({type: Boolean, attribute: 'trailing-icon', reflect: true})
+  trailingIcon = false;
 
   /**
    * Whether to display the icon or not.
    */
-  @property({type: Boolean, attribute: 'has-icon'}) hasIcon = false;
+  @property({type: Boolean, attribute: 'has-icon', reflect: true}) hasIcon =
+    false;
 
   /**
-   * Specifies the type of button, used for controlling forms. When type
-   * is `submit`, the containing form is submitted; when it is `reset` the
-   * form is reset.
+   * The default behavior of the button. May be "text", "reset", or "submit"
+   * (default).
    */
-  @property() type: ''|'submit'|'reset' = '';
+  @property() type: FormSubmitterType = 'submit';
 
-  @query('.button') private readonly buttonElement!: HTMLElement|null;
+  /**
+   * The value added to a form with the button's name when the button submits a
+   * form.
+   */
+  @property({reflect: true}) value = '';
+
+  get name() {
+    return this.getAttribute('name') ?? '';
+  }
+  set name(name: string) {
+    this.setAttribute('name', name);
+  }
+
+  /**
+   * The associated form element with which this element's value will submit.
+   */
+  get form() {
+    return this[internals].form;
+  }
+
+  @query('.button') private readonly buttonElement!: HTMLElement | null;
 
   @queryAssignedElements({slot: 'icon', flatten: true})
   private readonly assignedIcons!: HTMLElement[];
-
-  private readonly internals =
-      (this as HTMLElement /* needed for closure */).attachInternals();
-
-  // flag to avoid processing redispatched event.
-  private isRedispatchingEvent = false;
 
   constructor() {
     super();
@@ -98,113 +127,74 @@ export abstract class Button extends LitElement {
   protected override render() {
     // Link buttons may not be disabled
     const isDisabled = this.disabled && !this.href;
+    const buttonOrLink = this.href ? this.renderLink() : this.renderButton();
+    // TODO(b/310046938): due to a limitation in focus ring/ripple, we can't use
+    // the same ID for different elements, so we change the ID instead.
+    const buttonId = this.href ? 'link' : 'button';
+    return html`
+      ${this.renderElevationOrOutline?.()}
+      <div class="background"></div>
+      <md-focus-ring part="focus-ring" for=${buttonId}></md-focus-ring>
+      <md-ripple for=${buttonId} ?disabled="${isDisabled}"></md-ripple>
+      ${buttonOrLink}
+    `;
+  }
 
-    const button = this.href ? literal`a` : literal`button`;
+  // Buttons can override this to add elevation or an outline. Use this and
+  // return `<md-elevation>` (for elevated, filled, and tonal buttons)
+  // or `<div class="outline">` (for outlined buttons).
+  // Text buttons that have neither do not need to implement this.
+  protected renderElevationOrOutline?(): unknown;
+
+  private renderButton() {
     // Needed for closure conformance
     const {ariaLabel, ariaHasPopup, ariaExpanded} = this as ARIAMixinStrict;
-    return staticHtml`
-      <${button}
-        class="button ${classMap(this.getRenderClasses())}"
-        ?disabled=${isDisabled}
-        aria-label="${ariaLabel || nothing}"
-        aria-haspopup="${ariaHasPopup || nothing}"
-        aria-expanded="${ariaExpanded || nothing}"
-        href=${this.href || nothing}
-        target=${this.target || nothing}
-        @click="${this.handleClick}"
-      >
-        ${this.renderFocusRing()}
-        ${this.renderElevation()}
-        ${this.renderRipple()}
-        ${this.renderOutline()}
-        ${this.renderTouchTarget()}
-        ${this.renderLeadingIcon()}
-        ${this.renderLabel()}
-        ${this.renderTrailingIcon()}
-      </${button}>`;
+    return html`<button
+      id="button"
+      class="button"
+      ?disabled=${this.disabled}
+      aria-label="${ariaLabel || nothing}"
+      aria-haspopup="${ariaHasPopup || nothing}"
+      aria-expanded="${ariaExpanded || nothing}">
+      ${this.renderContent()}
+    </button>`;
   }
 
-  protected getRenderClasses() {
-    return {
-      'button--icon-leading': !this.trailingIcon && this.hasIcon,
-      'button--icon-trailing': this.trailingIcon && this.hasIcon,
-    };
+  private renderLink() {
+    // Needed for closure conformance
+    const {ariaLabel, ariaHasPopup, ariaExpanded} = this as ARIAMixinStrict;
+    return html`<a
+      id="link"
+      class="button"
+      aria-label="${ariaLabel || nothing}"
+      aria-haspopup="${ariaHasPopup || nothing}"
+      aria-expanded="${ariaExpanded || nothing}"
+      href=${this.href}
+      target=${this.target || nothing}
+      >${this.renderContent()}
+    </a>`;
   }
 
-  protected renderElevation(): TemplateResult|typeof nothing {
-    return nothing;
-  }
+  private renderContent() {
+    const icon = html`<slot
+      name="icon"
+      @slotchange="${this.handleSlotChange}"></slot>`;
 
-  protected renderOutline(): TemplateResult|typeof nothing {
-    return nothing;
-  }
-
-  private renderTouchTarget() {
     return html`
-      <span class="button__touch"></span>
+      <span class="touch"></span>
+      ${this.trailingIcon ? nothing : icon}
+      <span class="label"><slot></slot></span>
+      ${this.trailingIcon ? icon : nothing}
     `;
   }
 
   private readonly handleActivationClick = (event: MouseEvent) => {
-    if (!isActivationClick((event)) || !this.buttonElement) {
+    if (!isActivationClick(event) || !this.buttonElement) {
       return;
     }
     this.focus();
     dispatchActivationClick(this.buttonElement);
   };
-
-  private renderRipple() {
-    return html`<md-ripple class="button__ripple" ?disabled="${
-        this.disabled}"></md-ripple>`;
-  }
-
-  private renderFocusRing() {
-    return html`<md-focus-ring part="focus-ring"></md-focus-ring>`;
-  }
-
-  private renderLabel() {
-    return html`<span class="button__label"><slot></slot></span>`;
-  }
-
-  private renderLeadingIcon() {
-    return this.trailingIcon ? nothing : this.renderIcon();
-  }
-
-  private renderTrailingIcon() {
-    return this.trailingIcon ? this.renderIcon() : nothing;
-  }
-
-  private renderIcon() {
-    return html`<slot name="icon" @slotchange="${
-        this.handleSlotChange}"></slot>`;
-  }
-
-  private handleClick(event: MouseEvent) {
-    if (this.isRedispatchingEvent) {
-      return;
-    }
-    // based on type, trigger form action.
-    const {type, internals: {form}} = this;
-    if (!form) {
-      return;
-    }
-    const isSubmit = type === 'submit', isReset = type === 'reset';
-    if (!(isSubmit || isReset)) {
-      return;
-    }
-    event.stopPropagation();
-    this.isRedispatchingEvent = true;
-    const prevented = !redispatchEvent(this, event);
-    this.isRedispatchingEvent = false;
-    if (prevented) {
-      return;
-    }
-    if (isSubmit) {
-      form.requestSubmit();
-    } else if (isReset) {
-      form.reset();
-    }
-  }
 
   private handleSlotChange() {
     this.hasIcon = this.assignedIcons.length > 0;

@@ -4,21 +4,24 @@
 //
 
 // go/keep-sorted start
+@use 'sass:list';
 @use 'sass:map';
-@use 'sass:string';
 // go/keep-sorted end
 // go/keep-sorted start
 @use '../../../focus/focus-ring';
 @use '../../../icon/icon';
-@use '../../../internal/sass/theme';
 @use '../../../ripple/ripple';
 @use '../../../tokens';
 // go/keep-sorted end
 
 @mixin theme($tokens) {
-  $tokens: theme.validate-theme(tokens.md-comp-list-item-values(), $tokens);
+  $supported-tokens: tokens.$md-comp-list-item-supported-tokens;
 
   @each $token, $value in $tokens {
+    @if list.index($supported-tokens, $token) == null {
+      @error 'Token `#{$token}` is not a supported token.';
+    }
+
     @if $value {
       --md-list-item-#{$token}: #{$value};
     }
@@ -27,35 +30,32 @@
 
 @mixin styles() {
   $tokens: tokens.md-comp-list-item-values();
-
-  :host {
-    @each $token, $value in $tokens {
-      --_#{$token}: var(--md-list-item-#{$token}, #{$value});
-    }
+  @each $token, $value in $tokens {
+    $tokens: map.set($tokens, $token, var(--md-list-item-#{$token}, #{$value}));
   }
 
-  @include _list-item;
-  @include _image;
-  @include _icon;
-  @include _avatar;
-  @include _video;
-}
-
-@mixin _list-item() {
   :host {
-    color: unset;
+    border-radius: map.get($tokens, 'container-shape');
+    display: flex;
+    -webkit-tap-highlight-color: transparent;
 
     @include ripple.theme(
       (
-        hover-color: var(--_list-item-hover-state-layer-color),
-        hover-opacity: var(--_list-item-hover-state-layer-opacity),
-        pressed-color: var(--_list-item-pressed-state-layer-color),
-        pressed-opacity: var(--_list-item-pressed-state-layer-opacity),
+        hover-color: map.get($tokens, 'hover-state-layer-color'),
+        hover-opacity: map.get($tokens, 'hover-state-layer-opacity'),
+        pressed-color: map.get($tokens, 'pressed-state-layer-color'),
+        pressed-opacity: map.get($tokens, 'pressed-state-layer-opacity'),
       )
     );
   }
 
+  :host(:is([type='button']:not([disabled]), [type='link'])) {
+    cursor: pointer;
+  }
+
   md-focus-ring {
+    z-index: 1;
+
     @include focus-ring.theme(
       (
         'shape': 8px,
@@ -63,366 +63,104 @@
     );
   }
 
-  .list-item {
-    align-items: center;
-    box-sizing: border-box;
-    display: flex;
-    outline: none;
-    position: relative;
-    width: 100%;
+  a,
+  button,
+  li {
+    // Resets. These can be removed once we're no longer use these tags
+    background: none;
+    border: none;
+    cursor: inherit;
+    padding: 0;
+    margin: 0;
+    text-align: unset;
     text-decoration: none;
-    background-color: var(--_list-item-container-color);
-    border-radius: var(--_list-item-container-shape);
-    // hide android tap color since we have ripple
-    -webkit-tap-highlight-color: transparent;
-
-    &:not(.disabled):not(.noninteractive) {
-      cursor: pointer;
-    }
-
-    &.disabled {
-      pointer-events: none;
-    }
   }
 
-  .content-wrapper {
-    display: flex;
-    width: 100%;
-    box-sizing: border-box;
+  .list-item {
     border-radius: inherit;
-    padding-inline-end: var(--_list-item-trailing-space);
+    display: flex;
+    flex: 1;
+    max-width: inherit;
+    min-width: inherit;
+    outline: none;
+    // hide android tap color since we have ripple
+    -webkit-tap-highlight-color: transparent;
+    width: 100%;
+  }
+
+  .list-item.interactive {
+    cursor: pointer;
+  }
+
+  .list-item.disabled {
+    opacity: map.get($tokens, 'disabled-opacity');
+    pointer-events: none;
+  }
+
+  [slot='container'] {
+    pointer-events: none;
   }
 
   md-ripple {
     border-radius: inherit;
   }
 
-  .with-one-line {
-    min-height: var(--_list-item-one-line-container-height);
+  md-item {
+    border-radius: inherit;
+    flex: 1;
+    height: 100%;
+    color: map.get($tokens, 'label-text-color');
+    font-family: map.get($tokens, 'label-text-font');
+    font-size: map.get($tokens, 'label-text-size');
+    line-height: map.get($tokens, 'label-text-line-height');
+    font-weight: map.get($tokens, 'label-text-weight');
+    min-height: map.get($tokens, 'one-line-container-height');
+    padding-top: map.get($tokens, 'top-space');
+    padding-bottom: map.get($tokens, 'bottom-space');
+    padding-inline-start: map.get($tokens, 'leading-space');
+    padding-inline-end: map.get($tokens, 'trailing-space');
   }
 
-  .with-two-line {
-    min-height: var(--_list-item-two-line-container-height);
+  md-item[multiline] {
+    min-height: map.get($tokens, 'two-line-container-height');
   }
 
-  .with-three-line {
-    min-height: var(--_list-item-three-line-container-height);
+  [slot='supporting-text'] {
+    color: map.get($tokens, 'supporting-text-color');
+    font-family: map.get($tokens, 'supporting-text-font');
+    font-size: map.get($tokens, 'supporting-text-size');
+    line-height: map.get($tokens, 'supporting-text-line-height');
+    font-weight: map.get($tokens, 'supporting-text-weight');
   }
 
-  .start {
-    display: inline-flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    flex: 0 0 auto;
-    z-index: 1;
-
-    .with-three-line & {
-      justify-content: start;
-    }
+  [slot='trailing-supporting-text'] {
+    color: map.get($tokens, 'trailing-supporting-text-color');
+    font-family: map.get($tokens, 'trailing-supporting-text-font');
+    font-size: map.get($tokens, 'trailing-supporting-text-size');
+    line-height: map.get($tokens, 'trailing-supporting-text-line-height');
+    font-weight: map.get($tokens, 'trailing-supporting-text-weight');
   }
 
-  slot[name='start'] {
-    &::slotted([data-variant='icon']),
-    &::slotted([data-variant='image']),
-    &::slotted([data-variant='avatar']) {
-      margin-inline-start: var(--_list-item-leading-element-leading-space);
-    }
+  :is([slot='start'], [slot='end'])::slotted(*) {
+    fill: currentColor;
   }
 
-  .body {
-    display: inline-flex;
-    justify-content: center;
-    flex-direction: column;
-    box-sizing: border-box;
-    flex: 1 0 0;
-    padding-inline-start: var(--_list-item-leading-space);
-    z-index: 1;
+  [slot='start'] {
+    color: map.get($tokens, 'leading-icon-color');
   }
 
-  .end {
-    display: inline-flex;
-    flex-direction: column;
-    justify-content: center;
-    flex: 0 0 auto;
-    z-index: 1;
-
-    .with-three-line & {
-      justify-content: start;
-    }
+  [slot='end'] {
+    color: map.get($tokens, 'trailing-icon-color');
   }
 
-  slot[name='end']::slotted(*),
-  .trailing-supporting-text {
-    margin-inline-start: var(
-      --_list-item-trailing-element-headline-trailing-element-space
-    );
-  }
-
-  .label-text {
-    display: flex;
-    text-overflow: ellipsis;
-    overflow-x: hidden;
-    white-space: nowrap;
-    color: var(--_list-item-label-text-color);
-    font: var(--_list-item-label-text-type);
-
-    :hover & {
-      color: var(--_list-item-hover-label-text-color);
+  @media (forced-colors: active) {
+    .disabled slot {
+      color: GrayText;
     }
 
-    :focus & {
-      color: var(--_list-item-focus-label-text-color);
+    .list-item.disabled {
+      color: GrayText;
+      opacity: 1;
     }
-
-    :active & {
-      color: var(--_list-item-pressed-label-text-color);
-    }
-
-    .disabled & {
-      color: var(--_list-item-disabled-label-text-color);
-      opacity: var(--_list-item-disabled-label-text-opacity);
-    }
-  }
-
-  .supporting-text {
-    text-overflow: ellipsis;
-    white-space: normal;
-    overflow: hidden;
-    width: 100%;
-    color: var(--_list-item-supporting-text-color);
-    font: var(--_list-item-supporting-text-type);
-
-    // Box is supposed to be deprecated, but line-clamp is not. It's still on
-    // standards track and can only be applied with display: -webkit-box and
-    // -webkit-box-orient: vertical. Must change once un-prefixed line-clamp
-    // ships
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
-    display: -webkit-box;
-
-    .disabled & {
-      color: var(--_list-item-disabled-label-text-color);
-      opacity: var(--_list-item-disabled-label-text-opacity);
-    }
-  }
-
-  .supporting-text--multi-line {
-    -webkit-line-clamp: 2;
-  }
-
-  .trailing-supporting-text {
-    padding-inline-start: 16px;
-    font: var(--_list-item-trailing-supporting-text-type);
-
-    .list-item:not(.disabled) & {
-      color: var(--_list-item-trailing-supporting-text-color);
-    }
-
-    .disabled & {
-      color: var(--_list-item-disabled-label-text-color);
-      opacity: var(--_list-item-disabled-label-text-opacity);
-    }
-
-    .with-three-line & {
-      // In three line, trailing-supporting-text must align with the mid-line of
-      // the headline text.
-      padding-block-start: calc(
-        (
-            var(--_list-item-label-text-line-height) -
-              var(--_list-item-trailing-supporting-text-line-height)
-          ) / 2
-      );
-    }
-  }
-
-  .focus-ring {
-    z-index: 1;
-  }
-}
-
-@mixin _image() {
-  ::slotted([data-variant='image']) {
-    display: inline-flex;
-    height: var(--_list-item-leading-image-height);
-    width: var(--_list-item-leading-image-width);
-    border-radius: var(--_list-item-leading-image-shape);
-    // Min height is two-line height
-    padding-block: calc(
-      (
-          var(--_list-item-two-line-container-height) -
-            var(--_list-item-leading-image-height)
-        ) / 2
-    );
-
-    .with-three-line & {
-      padding-block: 0;
-    }
-  }
-}
-
-@mixin _icon() {
-  slot[name='start']::slotted([data-variant='icon']) {
-    @include icon.theme(
-      (
-        color: var(--_list-item-leading-icon-color),
-        size: var(--_list-item-leading-icon-size),
-      )
-    );
-
-    .with-three-line & {
-      // In three line, icon must align with the mid-line of headline text
-      padding-block-start: calc(
-        (
-            var(--_list-item-label-text-line-height) -
-              var(--_list-item-leading-icon-size)
-          ) / 2
-      );
-    }
-  }
-
-  slot[name='end']::slotted([data-variant='icon']) {
-    @include icon.theme(
-      (
-        color: var(--_list-item-trailing-icon-color),
-        size: var(--_list-item-trailing-icon-size),
-      )
-    );
-
-    .with-three-line & {
-      // In three line, icon must align with the mid-line of headline text
-      padding-block-start: calc(
-        (
-            var(--_list-item-label-text-line-height) -
-              var(--_list-item-trailing-icon-size)
-          ) / 2
-      );
-    }
-  }
-
-  :hover {
-    slot[name='start']::slotted([data-variant='icon']) {
-      @include icon.theme(
-        (
-          color: var(--_list-item-hover-leading-icon-icon-color),
-        )
-      );
-    }
-
-    slot[name='end']::slotted([data-variant='icon']) {
-      @include icon.theme(
-        (
-          color: var(--_list-item-hover-trailing-icon-icon-color),
-        )
-      );
-    }
-  }
-
-  :focus {
-    slot[name='start']::slotted([data-variant='icon']) {
-      @include icon.theme(
-        (
-          color: var(--_list-item-focus-leading-icon-icon-color),
-        )
-      );
-    }
-
-    slot[name='end']::slotted([data-variant='icon']) {
-      @include icon.theme(
-        (
-          color: var(--_list-item-focus-trailing-icon-icon-color),
-        )
-      );
-    }
-  }
-
-  :active {
-    slot[name='start']::slotted([data-variant='icon']) {
-      @include icon.theme(
-        (
-          color: var(--_list-item-pressed-leading-icon-icon-color),
-        )
-      );
-    }
-
-    slot[name='end']::slotted([data-variant='icon']) {
-      @include icon.theme(
-        (
-          color: var(--_list-item-pressed-trailing-icon-icon-color),
-        )
-      );
-    }
-  }
-
-  .disabled {
-    slot[name='start']::slotted([data-variant='icon']) {
-      opacity: var(--_list-item-disabled-leading-icon-opacity);
-
-      @include icon.theme(
-        (
-          color: var(--_list-item-disabled-leading-icon-color),
-        )
-      );
-    }
-
-    slot[name='end']::slotted([data-variant='icon']) {
-      opacity: var(--_list-item-disabled-trailing-icon-opacity);
-
-      @include icon.theme(
-        (
-          color: var(--_list-item-disabled-trailing-icon-color),
-        )
-      );
-    }
-  }
-}
-
-@mixin _avatar() {
-  ::slotted([data-variant='avatar']) {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    background-color: var(--_list-item-leading-avatar-color);
-    height: var(--_list-item-leading-avatar-size);
-    width: var(--_list-item-leading-avatar-size);
-    border-radius: var(--_list-item-leading-avatar-shape);
-    color: var(--_list-item-leading-avatar-label-color);
-    font: var(--_list-item-leading-avatar-label-type);
-  }
-}
-
-@mixin _video() {
-  ::slotted([data-variant='video']),
-  ::slotted([data-variant='video-large']) {
-    display: inline-flex;
-    object-fit: cover;
-    height: var(--_list-item-small-leading-video-height);
-    width: var(--_list-item-leading-video-width);
-    border-radius: var(--_list-item-leading-video-shape);
-    margin-inline-start: var(--_list-item-leading-video-leading-space);
-    // Min height is three-line height
-    padding-block: calc(
-      (
-          var(--_list-item-three-line-container-height) -
-            var(--_list-item-small-leading-video-height)
-        ) / 2
-    );
-
-    // Let it auto-layout so that we don't mess with the icons and supporting
-    // text that is supposed to be top-aligned in three-line.
-    .with-three-line & {
-      padding-block: 0;
-    }
-  }
-
-  ::slotted([data-variant='video-large']) {
-    // Min height is three-line height
-    padding-block: calc(
-      (
-          var(--_list-item-three-line-container-height) -
-            var(--_list-item-large-leading-video-height)
-        ) / 2
-    );
-    height: var(--_list-item-large-leading-video-height);
   }
 }

@@ -11,28 +11,18 @@
   .trailing.action {
     align-items: center;
     justify-content: center;
-    padding: 0 8px;
+    padding-inline-start: var(--_icon-label-space);
+    padding-inline-end: var(--_with-trailing-icon-trailing-space);
   }
 
-  .trailing.action md-focus-ring {
-    // Note: the trailing action's shape only follows the trailing end of the
-    // chip. For example, if the leading end is rounded, but the trailing is end
-    // squared, then the focus ring will be squared (not rounded+squared).
-    @include focus-ring.theme(
-      (
-        'shape-start-start': var(--_container-shape-start-end),
-        'shape-end-start': var(--_container-shape-end-end),
-        'shape-end-end': var(--_container-shape-end-end),
-        'shape-start-end': var(--_container-shape-start-end),
-        'outward-offset': -2px,
-      )
-    );
-  }
-
-  .trailing.action md-ripple {
+  .trailing.action :is(md-ripple, md-focus-ring) {
     border-radius: 50%;
     height: calc(4 / 3 * var(--_icon-size)); // 24px default
     width: calc(4 / 3 * var(--_icon-size)); // 24px default
+  }
+
+  .trailing.action md-focus-ring {
+    inset: unset;
   }
 
   .has-trailing .primary.action {
@@ -45,36 +35,47 @@
     width: var(--_icon-size);
   }
 
-  :hover .trailing.icon {
+  :where(:hover) .trailing.icon {
     color: var(--_hover-trailing-icon-color);
   }
 
-  :focus .trailing.icon {
+  :where(:focus) .trailing.icon {
     color: var(--_focus-trailing-icon-color);
   }
 
-  :active .trailing.icon {
+  :where(:active) .trailing.icon {
     color: var(--_pressed-trailing-icon-color);
   }
 
-  .disabled .trailing.icon {
+  :where(.disabled) .trailing.icon {
     color: var(--_disabled-trailing-icon-color);
     opacity: var(--_disabled-trailing-icon-opacity);
   }
 
-  .selected .trailing.icon {
+  :where(.selected) .trailing.icon {
     color: var(--_selected-trailing-icon-color);
   }
 
-  .selected:hover .trailing.icon {
+  :where(.selected:hover) .trailing.icon {
     color: var(--_selected-hover-trailing-icon-color);
   }
 
-  .selected:focus .trailing.icon {
+  :where(.selected:focus) .trailing.icon {
     color: var(--_selected-focus-trailing-icon-color);
   }
 
-  .selected:active .trailing.icon {
+  :where(.selected:active) .trailing.icon {
     color: var(--_selected-pressed-trailing-icon-color);
+  }
+
+  @media (forced-colors: active) {
+    .trailing.icon {
+      color: ButtonText;
+    }
+
+    :where(.disabled) .trailing.icon {
+      color: GrayText;
+      opacity: 1;
+    }
   }
 }

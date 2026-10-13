@@ -20,9 +20,14 @@
     display: inline-flex;
     outline: none;
     -webkit-tap-highlight-color: transparent;
-    height: var(--_container-size);
-    width: var(--_container-size);
+    height: var(--_container-height);
+    width: var(--_container-width);
     justify-content: center;
+  }
+
+  :host([touch-target='wrapper']) {
+    margin: max(0px, (48px - var(--_container-height)) / 2)
+      max(0px, (48px - var(--_container-width)) / 2);
   }
 
   md-focus-ring {
@@ -41,14 +46,15 @@
   }
 
   .icon-button {
-    align-items: center;
+    place-items: center;
     background: none;
     border: none;
     box-sizing: border-box;
     cursor: pointer;
     display: flex;
-    justify-content: center;
+    place-content: center;
     outline: none;
+    padding: 0;
     position: relative;
     text-decoration: none;
     user-select: none;
@@ -61,15 +67,12 @@
   }
 
   .icon {
-    height: var(--_icon-size);
-    width: var(--_icon-size);
-
-    @include icon.theme(
-      (
-        size: var(--_icon-size),
-        weight: inherit,
-      )
-    );
+    ::slotted(*) {
+      font-size: var(--_icon-size);
+      height: var(--_icon-size);
+      width: var(--_icon-size);
+      font-weight: inherit;
+    }
   }
 
   md-ripple {
@@ -97,10 +100,17 @@
 
   .touch {
     position: absolute;
-    top: 50%;
-    height: 48px;
-    left: 50%;
-    width: 48px;
-    transform: translate(-50%, -50%);
+    height: max(48px, 100%);
+    width: max(48px, 100%);
+  }
+
+  :host([touch-target='none']) .touch {
+    display: none;
+  }
+
+  @media (forced-colors: active) {
+    :host([disabled]) {
+      --_disabled-icon-opacity: 1;
+    }
   }
 }

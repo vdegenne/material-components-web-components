@@ -8,13 +8,13 @@
 @use 'sass:string';
 // go/keep-sorted end
 // go/keep-sorted start
+@use './internal/validate';
 @use './md-sys-color';
 @use './md-sys-elevation';
 @use './md-sys-shape';
 @use './md-sys-state';
 @use './md-sys-typescale';
-@use './v0_172/md-comp-outlined-select';
-@use './values';
+@use './v0_192/md-comp-outlined-select';
 // go/keep-sorted end
 
 $supported-tokens: (
@@ -66,17 +66,26 @@ $supported-tokens: (
   'text-field-hover-supporting-text-color',
   'text-field-hover-trailing-icon-color',
   'text-field-input-text-color',
-  'text-field-input-text-type',
+  'text-field-input-text-font',
+  'text-field-input-text-line-height',
+  'text-field-input-text-size',
+  'text-field-input-text-weight',
   'text-field-label-text-color',
+  'text-field-label-text-font',
+  'text-field-label-text-line-height',
   'text-field-label-text-populated-line-height',
   'text-field-label-text-populated-size',
-  'text-field-label-text-type',
+  'text-field-label-text-size',
+  'text-field-label-text-weight',
   'text-field-leading-icon-color',
   'text-field-leading-icon-size',
   'text-field-outline-color',
   'text-field-outline-width',
   'text-field-supporting-text-color',
-  'text-field-supporting-text-type',
+  'text-field-supporting-text-font',
+  'text-field-supporting-text-line-height',
+  'text-field-supporting-text-size',
+  'text-field-supporting-text-weight',
   'text-field-trailing-icon-color',
   'text-field-trailing-icon-size',
   // go/keep-sorted end
@@ -110,21 +119,12 @@ $unsupported-tokens: (
   'text-field-error-hover-state-layer-opacity',
   'text-field-hover-state-layer-color',
   'text-field-hover-state-layer-opacity',
-  'text-field-input-text-font',
-  'text-field-input-text-line-height',
-  'text-field-input-text-size',
   'text-field-input-text-tracking',
-  'text-field-input-text-weight',
-  'text-field-label-text-font',
-  'text-field-label-text-line-height',
-  'text-field-label-text-size',
+  'text-field-input-text-type',
   'text-field-label-text-tracking',
-  'text-field-label-text-weight',
-  'text-field-supporting-text-font',
-  'text-field-supporting-text-line-height',
-  'text-field-supporting-text-size',
+  'text-field-label-text-type',
   'text-field-supporting-text-tracking',
-  'text-field-supporting-text-weight',
+  'text-field-supporting-text-type',
   // go/keep-sorted end
 );
 
@@ -137,10 +137,18 @@ $_default: (
 );
 
 @function values($deps: $_default, $exclude-hardcoded-values: false) {
-  $tokens: values.validate(
+  $tokens: validate.values(
     md-comp-outlined-select.values($deps, $exclude-hardcoded-values),
     $supported-tokens: $supported-tokens,
     $unsupported-tokens: $unsupported-tokens
+  );
+
+  $tokens: map.merge(
+    $tokens,
+    (
+      // TODO(b/259455114): remove when focus tokens update to 3px
+      'text-field-focus-outline-width': if($exclude-hardcoded-values, null, 3px)
+    )
   );
 
   @return $tokens;

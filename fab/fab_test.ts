@@ -45,7 +45,6 @@ describe('<md-fab>', () => {
       const {harness} = await setupTest();
       expect(harness.element).toBeInstanceOf(MdFab);
       expect(harness.element.lowered).toEqual(false);
-      expect(harness.element.reducedTouchTarget).toEqual(false);
       expect(harness.element.label).toEqual('');
       expect(harness.element.variant).toEqual('surface');
       expect(harness.element.size).toEqual('medium');
@@ -157,8 +156,9 @@ describe('<md-branded-fab>', () => {
   const env = new Environment();
 
   async function setupTest() {
-    const element = env.render(html`<md-branded-fab></md-branded-fab>`)
-                        .querySelector('md-branded-fab');
+    const element = env
+      .render(html`<md-branded-fab></md-branded-fab>`)
+      .querySelector('md-branded-fab');
     if (!element) {
       throw new Error('Could not query rendered <md-branded-fab>.');
     }

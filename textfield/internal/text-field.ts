@@ -4,97 +4,177 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {html, isServer, LitElement, nothing, PropertyValues} from 'lit';
+import {LitElement, PropertyValues, html, nothing} from 'lit';
 import {property, query, queryAssignedElements, state} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {live} from 'lit/directives/live.js';
-import {styleMap} from 'lit/directives/style-map.js';
-import {html as staticHtml, StaticValue} from 'lit/static-html.js';
+import {StyleInfo, styleMap} from 'lit/directives/style-map.js';
+import {StaticValue, html as staticHtml} from 'lit/static-html.js';
 
 import {Field} from '../../field/internal/field.js';
 import {ARIAMixinStrict} from '../../internal/aria/aria.js';
 import {requestUpdateOnAriaChange} from '../../internal/aria/delegate.js';
-import {redispatchEvent} from '../../internal/controller/events.js';
 import {stringConverter} from '../../internal/controller/string-converter.js';
+import {redispatchEvent} from '../../internal/events/redispatch-event.js';
+import {
+  createValidator,
+  getValidityAnchor,
+  mixinConstraintValidation,
+} from '../../labs/behaviors/constraint-validation.js';
+import {mixinElementInternals} from '../../labs/behaviors/element-internals.js';
+import {
+  getFormValue,
+  mixinFormAssociated,
+} from '../../labs/behaviors/form-associated.js';
+import {
+  mixinOnReportValidity,
+  onReportValidity,
+} from '../../labs/behaviors/on-report-validity.js';
+import {TextFieldValidator} from '../../labs/behaviors/validators/text-field-validator.js';
+import {Validator} from '../../labs/behaviors/validators/validator.js';
 
 /**
  * Input types that are compatible with the text field.
  */
 export type TextFieldType =
-    'email'|'number'|'password'|'search'|'tel'|'text'|'url'|'textarea';
+  | 'email'
+  | 'number'
+  | 'password'
+  | 'search'
+  | 'tel'
+  | 'text'
+  | 'url'
+  | 'textarea';
 
 /**
  * Input types that are not fully supported for the text field.
  */
 export type UnsupportedTextFieldType =
-    'color'|'date'|'datetime-local'|'file'|'month'|'time'|'week';
+  | 'color'
+  | 'date'
+  | 'datetime-local'
+  | 'file'
+  | 'month'
+  | 'time'
+  | 'week';
 
 /**
  * Input types that are incompatible with the text field.
  */
 export type InvalidTextFieldType =
-    'button'|'checkbox'|'hidden'|'image'|'radio'|'range'|'reset'|'submit';
+  | 'button'
+  | 'checkbox'
+  | 'hidden'
+  | 'image'
+  | 'radio'
+  | 'range'
+  | 'reset'
+  | 'submit';
+
+// Separate variable needed for closure.
+const textFieldBaseClass = mixinOnReportValidity(
+  mixinConstraintValidation(
+    mixinFormAssociated(mixinElementInternals(LitElement)),
+  ),
+);
 
 /**
  * A text field component.
+ *
+ * @fires select {Event} The native `select` event on
+ * [`<input>`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/select_event)
+ * --bubbles
+ * @fires change {Event} The native `change` event on
+ * [`<input>`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/change_event)
+ * --bubbles
+ * @fires input {InputEvent} The native `input` event on
+ * [`<input>`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/input_event)
+ * --bubbles --composed
  */
-export abstract class TextField extends LitElement {
+export abstract class TextField extends textFieldBaseClass {
   static {
-    requestUpdateOnAriaChange(this);
+    requestUpdateOnAriaChange(TextField);
   }
 
   /** @nocollapse */
-  static override shadowRootOptions:
-      ShadowRootInit = {...LitElement.shadowRootOptions, delegatesFocus: true};
+  static override shadowRootOptions: ShadowRootInit = {
+    ...LitElement.shadowRootOptions,
+    delegatesFocus: true,
+  };
 
-  /** @nocollapse  */
-  static formAssociated = true;
-
-  @property({type: Boolean, reflect: true}) disabled = false;
   /**
    * Gets or sets whether or not the text field is in a visually invalid state.
    *
-   * Calling `reportValidity()` will automatically update `error`.
+   * This error state overrides the error state controlled by
+   * `reportValidity()`.
    */
   @property({type: Boolean, reflect: true}) error = false;
+
   /**
    * The error message that replaces supporting text when `error` is true. If
    * `errorText` is an empty string, then the supporting text will continue to
    * show.
    *
-   * Calling `reportValidity()` will automatically update `errorText` to the
-   * native `validationMessage`.
+   * This error message overrides the error message displayed by
+   * `reportValidity()`.
    */
   @property({attribute: 'error-text'}) errorText = '';
+
+  /**
+   * The floating Material label of the textfield component. It informs the user
+   * about what information is requested for a text field. It is aligned with
+   * the input text, is always visible, and it floats when focused or when text
+   * is entered into the textfield. This label also sets accessibilty labels,
+   * but the accessible label is overriden by `aria-label`.
+   *
+   * Learn more about floating labels from the Material Design guidelines:
+   * https://m3.material.io/components/text-fields/guidelines
+   */
   @property() label = '';
+
+  /**
+   * Indicates that the user must specify a value for the input before the
+   * owning form can be submitted and will render an error state when
+   * `reportValidity()` is invoked when value is empty. Additionally the
+   * floating label will render an asterisk `"*"` when true.
+   *
+   * https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/required
+   */
   @property({type: Boolean, reflect: true}) required = false;
+
   /**
    * The current value of the text field. It is always a string.
    */
   @property() value = '';
+
   /**
    * An optional prefix to display before the input value.
    */
   @property({attribute: 'prefix-text'}) prefixText = '';
+
   /**
    * An optional suffix to display after the input value.
    */
   @property({attribute: 'suffix-text'}) suffixText = '';
+
   /**
    * Whether or not the text field has a leading icon. Used for SSR.
    */
   @property({type: Boolean, attribute: 'has-leading-icon'})
   hasLeadingIcon = false;
+
   /**
    * Whether or not the text field has a trailing icon. Used for SSR.
    */
   @property({type: Boolean, attribute: 'has-trailing-icon'})
   hasTrailingIcon = false;
+
   /**
    * Conveys additional information below the text field, such as how it should
    * be used.
    */
   @property({attribute: 'supporting-text'}) supportingText = '';
+
   /**
    * Override the input text CSS `direction`. Useful for RTL languages that use
    * LTR notation for fractions.
@@ -108,36 +188,21 @@ export abstract class TextField extends LitElement {
   @property({type: Number}) rows = 2;
 
   /**
-   * The associated form element with which this element's value will submit.
+   * The number of cols to display for a `type="textarea"` text field.
+   * Defaults to 20.
    */
-  get form() {
-    return this.internals.form;
-  }
-
-  /**
-   * The labels this element is associated with.
-   */
-  get labels() {
-    return this.internals.labels;
-  }
-
-  /**
-   * The HTML name to use in form submission.
-   */
-  get name() {
-    return this.getAttribute('name') ?? '';
-  }
-  set name(name: string) {
-    this.setAttribute('name', name);
-  }
+  @property({type: Number}) cols = 20;
 
   // <input> properties
+  @property({reflect: true}) override inputMode = '';
+
   /**
    * Defines the greatest value in the range of permitted values.
    *
    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#max
    */
   @property() max = '';
+
   /**
    * The maximum number of characters a user can enter into the text field. Set
    * to -1 for none.
@@ -145,12 +210,14 @@ export abstract class TextField extends LitElement {
    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#maxlength
    */
   @property({type: Number}) maxLength = -1;
+
   /**
    * Defines the most negative value in the range of permitted values.
    *
    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#min
    */
   @property() min = '';
+
   /**
    * The minimum number of characters a user can enter into the text field. Set
    * to -1 for none.
@@ -158,6 +225,12 @@ export abstract class TextField extends LitElement {
    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#minlength
    */
   @property({type: Number}) minLength = -1;
+
+  /**
+   * When true, hide the spinner for `type="number"` text fields.
+   */
+  @property({type: Boolean, attribute: 'no-spinner'}) noSpinner = false;
+
   /**
    * A regular expression that the text field's value must match to pass
    * constraint validation.
@@ -165,6 +238,15 @@ export abstract class TextField extends LitElement {
    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#pattern
    */
   @property() pattern = '';
+
+  /**
+   * Defines the text displayed in the textfield when it has no value. Provides
+   * a brief hint to the user as to the expected type of data that should be
+   * entered into the control. Unlike `label`, the placeholder is not visible
+   * and does not float when the textfield has a value.
+   *
+   * https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/placeholder
+   */
   @property({reflect: true, converter: stringConverter}) placeholder = '';
 
   /**
@@ -176,12 +258,19 @@ export abstract class TextField extends LitElement {
   @property({type: Boolean, reflect: true}) readOnly = false;
 
   /**
+   * Indicates that input accepts multiple email addresses.
+   *
+   * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/email#multiple
+   */
+  @property({type: Boolean, reflect: true}) multiple = false;
+
+  /**
    * Gets or sets the direction in which selection occurred.
    */
   get selectionDirection() {
     return this.getInputOrTextarea().selectionDirection;
   }
-  set selectionDirection(value: 'forward'|'backward'|'none'|null) {
+  set selectionDirection(value: 'forward' | 'backward' | 'none' | null) {
     this.getInputOrTextarea().selectionDirection = value;
   }
 
@@ -191,7 +280,7 @@ export abstract class TextField extends LitElement {
   get selectionEnd() {
     return this.getInputOrTextarea().selectionEnd;
   }
-  set selectionEnd(value: number|null) {
+  set selectionEnd(value: number | null) {
     this.getInputOrTextarea().selectionEnd = value;
   }
 
@@ -201,7 +290,7 @@ export abstract class TextField extends LitElement {
   get selectionStart() {
     return this.getInputOrTextarea().selectionStart;
   }
-  set selectionStart(value: number|null) {
+  set selectionStart(value: number | null) {
     this.getInputOrTextarea().selectionStart = value;
   }
 
@@ -213,28 +302,35 @@ export abstract class TextField extends LitElement {
    */
   @property() step = '';
 
+  /**
+   * The `<input>` type to use, defaults to "text". The type greatly changes how
+   * the text field behaves.
+   *
+   * Text fields support a limited number of `<input>` types:
+   *
+   * - text
+   * - textarea
+   * - email
+   * - number
+   * - password
+   * - search
+   * - tel
+   * - url
+   *
+   * See
+   * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#input_types
+   * for more details on each input type.
+   */
   @property({reflect: true})
-  type: TextFieldType|UnsupportedTextFieldType = 'text';
+  type: TextFieldType | UnsupportedTextFieldType = 'text';
 
   /**
-   * Returns the native validation error message that would be displayed upon
-   * calling `reportValidity()`.
+   * Describes what, if any, type of autocomplete functionality the input
+   * should provide.
    *
-   * https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/validationMessage
+   * https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete
    */
-  get validationMessage() {
-    return this.getInputOrTextarea().validationMessage;
-  }
-
-  /**
-   * Returns a ValidityState object that represents the validity states of the
-   * text field.
-   *
-   * https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/validity
-   */
-  get validity() {
-    return this.getInputOrTextarea().validity;
-  }
+  @property({reflect: true}) autocomplete = '';
 
   /**
    * The text field's value as a number.
@@ -268,7 +364,7 @@ export abstract class TextField extends LitElement {
 
     return input.valueAsDate;
   }
-  set valueAsDate(value: Date|null) {
+  set valueAsDate(value: Date | null) {
     const input = this.getInput();
     if (!input) {
       return;
@@ -276,16 +372,6 @@ export abstract class TextField extends LitElement {
 
     input.valueAsDate = value;
     this.value = input.value;
-  }
-
-  /**
-   * Returns whether an element will successfully validate based on forms
-   * validation rules and constraints.
-   *
-   * https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/willValidate
-   */
-  get willValidate() {
-    return this.getInputOrTextarea().willValidate;
   }
 
   protected abstract readonly fieldTag: StaticValue;
@@ -311,84 +397,15 @@ export abstract class TextField extends LitElement {
   }
 
   @query('.input')
-  private readonly inputOrTextarea?: HTMLInputElement|HTMLTextAreaElement|null;
-  @query('.field') private readonly field?: Field|null;
-  @queryAssignedElements({slot: 'leadingicon'})
+  private readonly inputOrTextarea!:
+    | HTMLInputElement
+    | HTMLTextAreaElement
+    | null;
+  @query('.field') private readonly field!: Field | null;
+  @queryAssignedElements({slot: 'leading-icon'})
   private readonly leadingIcons!: Element[];
-  @queryAssignedElements({slot: 'trailingicon'})
+  @queryAssignedElements({slot: 'trailing-icon'})
   private readonly trailingIcons!: Element[];
-  private readonly internals =
-      (this as HTMLElement /* needed for closure */).attachInternals();
-
-  constructor() {
-    super();
-    if (!isServer) {
-      this.addEventListener('click', this.focus);
-      this.addEventListener('focusin', this.handleFocusin);
-      this.addEventListener('focusout', this.handleFocusout);
-    }
-  }
-
-  /**
-   * Checks the text field's native validation and returns whether or not the
-   * element is valid.
-   *
-   * If invalid, this method will dispatch the `invalid` event.
-   *
-   * https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/checkValidity
-   *
-   * @return true if the text field is valid, or false if not.
-   */
-  checkValidity() {
-    const {valid} = this.checkValidityAndDispatch();
-    return valid;
-  }
-
-  /**
-   * Focuses the text field's input text.
-   */
-  override focus() {
-    if (this.disabled || this.matches(':focus-within')) {
-      // Don't shift focus from an element within the text field, like an icon
-      // button, to the input when focus is requested.
-      return;
-    }
-
-    super.focus();
-  }
-
-  /**
-   * Checks the text field's native validation and returns whether or not the
-   * element is valid.
-   *
-   * If invalid, this method will dispatch the `invalid` event.
-   *
-   * This method will display or clear an error text message equal to the text
-   * field's `validationMessage`, unless the invalid event is canceled.
-   *
-   * Use `setCustomValidity()` to customize the `validationMessage`.
-   *
-   * This method can also be used to re-announce error messages to screen
-   * readers.
-   *
-   * https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/reportValidity
-   *
-   * @return true if the text field is valid, or false if not.
-   */
-  reportValidity() {
-    const {valid, canceled} = this.checkValidityAndDispatch();
-    if (!canceled) {
-      const prevMessage = this.getErrorText();
-      this.nativeError = !valid;
-      this.nativeErrorText = this.validationMessage;
-
-      if (prevMessage === this.getErrorText()) {
-        this.field?.reannounceError();
-      }
-    }
-
-    return valid;
-  }
 
   /**
    * Selects all the text in the text field.
@@ -400,34 +417,23 @@ export abstract class TextField extends LitElement {
   }
 
   /**
-   * Sets the text field's native validation error message. This is used to
-   * customize `validationMessage`.
-   *
-   * When the error is not an empty string, the text field is considered invalid
-   * and `validity.customError` will be true.
-   *
-   * https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/setCustomValidity
-   *
-   * @param error The error message to display.
-   */
-  setCustomValidity(error: string) {
-    this.getInputOrTextarea().setCustomValidity(error);
-  }
-
-  /**
    * Replaces a range of text with a new string.
    *
    * https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/setRangeText
    */
   setRangeText(replacement: string): void;
   setRangeText(
-      replacement: string, start: number, end: number,
-      selectionMode?: SelectionMode): void;
+    replacement: string,
+    start: number,
+    end: number,
+    selectionMode?: SelectionMode,
+  ): void;
   setRangeText(...args: unknown[]) {
     // Calling setRangeText with 1 vs 3-4 arguments has different behavior.
     // Use spread syntax and type casting to ensure correct usage.
     this.getInputOrTextarea().setRangeText(
-        ...args as Parameters<HTMLInputElement['setRangeText']>);
+      ...(args as Parameters<HTMLInputElement['setRangeText']>),
+    );
     this.value = this.getInputOrTextarea().value;
   }
 
@@ -441,8 +447,10 @@ export abstract class TextField extends LitElement {
    * @param direction The direction in which the selection is performed.
    */
   setSelectionRange(
-      start: number|null, end: number|null,
-      direction?: 'forward'|'backward'|'none') {
+    start: number | null,
+    end: number | null,
+    direction?: 'forward' | 'backward' | 'none',
+  ) {
     this.getInputOrTextarea().setSelectionRange(start, end, direction);
   }
 
@@ -493,7 +501,10 @@ export abstract class TextField extends LitElement {
   }
 
   override attributeChangedCallback(
-      attribute: string, newValue: string|null, oldValue: string|null) {
+    attribute: string,
+    newValue: string | null,
+    oldValue: string | null,
+  ) {
     if (attribute === 'value' && this.dirty) {
       // After user input, changing the value attribute no longer updates the
       // text field's value (until reset). This matches native <input> behavior.
@@ -508,13 +519,14 @@ export abstract class TextField extends LitElement {
       'disabled': this.disabled,
       'error': !this.disabled && this.hasError,
       'textarea': this.type === 'textarea',
+      'no-spinner': this.noSpinner,
     };
 
     return html`
-       <span class="text-field ${classMap(classes)}">
-         ${this.renderField()}
-       </span>
-     `;
+      <span class="text-field ${classMap(classes)}">
+        ${this.renderField()}
+      </span>
+    `;
   }
 
   protected override updated(changedProperties: PropertyValues) {
@@ -523,7 +535,6 @@ export abstract class TextField extends LitElement {
     // If a property such as `type` changes and causes the internal <input>
     // value to change without dispatching an event, re-sync it.
     const value = this.getInputOrTextarea().value;
-    this.internals.setFormValue(value);
     if (this.value !== value) {
       // Note this is typically inefficient in updated() since it schedules
       // another update. However, it is needed for the <input> to fully render
@@ -546,6 +557,7 @@ export abstract class TextField extends LitElement {
       max=${this.maxLength}
       ?populated=${!!this.value}
       ?required=${this.required}
+      ?resizable=${this.type === 'textarea'}
       supporting-text=${this.supportingText}
     >
       ${this.renderLeadingIcon()}
@@ -557,25 +569,32 @@ export abstract class TextField extends LitElement {
 
   private renderLeadingIcon() {
     return html`
-       <span class="icon leading" slot="start">
-         <slot name="leadingicon" @slotchange=${this.handleIconChange}></slot>
-       </span>
-     `;
+      <span class="icon leading" slot="start">
+        <slot name="leading-icon" @slotchange=${this.handleIconChange}></slot>
+      </span>
+    `;
   }
 
   private renderTrailingIcon() {
     return html`
-       <span class="icon trailing" slot="end">
-         <slot name="trailingicon" @slotchange=${this.handleIconChange}></slot>
-       </span>
-     `;
+      <span class="icon trailing" slot="end">
+        <slot name="trailing-icon" @slotchange=${this.handleIconChange}></slot>
+      </span>
+    `;
   }
 
   private renderInputOrTextarea() {
-    const style = {direction: this.textDirection};
+    const style: StyleInfo = {'direction': this.textDirection};
     const ariaLabel =
-        (this as ARIAMixinStrict).ariaLabel || this.label || nothing;
+      (this as ARIAMixinStrict).ariaLabel || this.label || nothing;
+    // lit-anaylzer `autocomplete` types are too strict
+    // tslint:disable-next-line:no-any
+    const autocomplete = this.autocomplete as any;
 
+    // These properties may be set to null if the attribute is removed, and
+    // `null > -1` is incorrectly `true`.
+    const hasMaxLength = (this.maxLength ?? -1) > -1;
+    const hasMinLength = (this.minLength ?? -1) > -1;
     if (this.type === 'textarea') {
       return html`
         <textarea
@@ -584,26 +603,31 @@ export abstract class TextField extends LitElement {
           aria-describedby="description"
           aria-invalid=${this.hasError}
           aria-label=${ariaLabel}
+          autocomplete=${autocomplete || nothing}
           ?disabled=${this.disabled}
-          maxlength=${this.maxLength > -1 ? this.maxLength : nothing}
-          minlength=${this.minLength > -1 ? this.minLength : nothing}
+          maxlength=${hasMaxLength ? this.maxLength : nothing}
+          minlength=${hasMinLength ? this.minLength : nothing}
           placeholder=${this.placeholder || nothing}
           ?readonly=${this.readOnly}
           ?required=${this.required}
           rows=${this.rows}
+          cols=${this.cols}
           .value=${live(this.value)}
           @change=${this.redispatchEvent}
+          @focus=${this.handleFocusChange}
+          @blur=${this.handleFocusChange}
           @input=${this.handleInput}
-          @select=${this.redispatchEvent}
-        ></textarea>
+          @select=${this.redispatchEvent}></textarea>
       `;
     }
 
     const prefix = this.renderPrefix();
     const suffix = this.renderSuffix();
 
-    // TODO(b/243805848): remove `as unknown as number` once lit analyzer is
-    // fixed
+    // TODO(b/243805848): remove `as unknown as number` and `as any` once lit
+    // analyzer is fixed
+    // tslint:disable-next-line:no-any
+    const inputMode = this.inputMode as any;
     return html`
       <div class="input-wrapper">
         ${prefix}
@@ -613,22 +637,26 @@ export abstract class TextField extends LitElement {
           aria-describedby="description"
           aria-invalid=${this.hasError}
           aria-label=${ariaLabel}
+          autocomplete=${autocomplete || nothing}
           ?disabled=${this.disabled}
+          inputmode=${inputMode || nothing}
           max=${(this.max || nothing) as unknown as number}
-          maxlength=${this.maxLength > -1 ? this.maxLength : nothing}
+          maxlength=${hasMaxLength ? this.maxLength : nothing}
           min=${(this.min || nothing) as unknown as number}
-          minlength=${this.minLength > -1 ? this.minLength : nothing}
+          minlength=${hasMinLength ? this.minLength : nothing}
           pattern=${this.pattern || nothing}
           placeholder=${this.placeholder || nothing}
           ?readonly=${this.readOnly}
           ?required=${this.required}
+          ?multiple=${this.multiple}
           step=${(this.step || nothing) as unknown as number}
           type=${this.type}
           .value=${live(this.value)}
           @change=${this.redispatchEvent}
+          @focus=${this.handleFocusChange}
+          @blur=${this.handleFocusChange}
           @input=${this.handleInput}
-          @select=${this.redispatchEvent}
-        >
+          @select=${this.redispatchEvent} />
         ${suffix}
       </div>
     `;
@@ -659,23 +687,17 @@ export abstract class TextField extends LitElement {
     return this.error ? this.errorText : this.nativeErrorText;
   }
 
-  private handleFocusin() {
-    this.focused = true;
-  }
-
-  private handleFocusout() {
-    if (this.matches(':focus-within')) {
-      // Changing focus to another child within the text field, like a button
-      return;
-    }
-
-    this.focused = false;
+  private handleFocusChange() {
+    // When calling focus() or reportValidity() during change, it's possible
+    // for blur to be called after the new focus event. Rather than set
+    // `this.focused` to true/false on focus/blur, we always set it to whether
+    // or not the input itself is focused.
+    this.focused = this.inputOrTextarea?.matches(':focus') ?? false;
   }
 
   private handleInput(event: InputEvent) {
     this.dirty = true;
     this.value = (event.target as HTMLInputElement).value;
-    this.redispatchEvent(event);
   }
 
   private redispatchEvent(event: Event) {
@@ -711,28 +733,54 @@ export abstract class TextField extends LitElement {
     return this.getInputOrTextarea() as HTMLInputElement;
   }
 
-  private checkValidityAndDispatch() {
-    const valid = this.getInputOrTextarea().checkValidity();
-    let canceled = false;
-    if (!valid) {
-      canceled = !this.dispatchEvent(new Event('invalid', {cancelable: true}));
-    }
-
-    return {valid, canceled};
-  }
-
   private handleIconChange() {
     this.hasLeadingIcon = this.leadingIcons.length > 0;
     this.hasTrailingIcon = this.trailingIcons.length > 0;
   }
 
-  /** @private */
-  formResetCallback() {
+  // Writable mixin properties for lit-html binding, needed for lit-analyzer
+  declare disabled: boolean;
+  declare name: string;
+
+  override [getFormValue]() {
+    return this.value;
+  }
+
+  override formResetCallback() {
     this.reset();
   }
 
-  /** @private */
-  formStateRestoreCallback(state: string) {
+  override formStateRestoreCallback(state: string) {
     this.value = state;
+  }
+
+  override focus() {
+    // Required for the case that the user slots a focusable element into the
+    // leading icon slot such as an iconbutton due to how delegatesFocus works.
+    this.getInputOrTextarea().focus();
+  }
+
+  [createValidator](): Validator<unknown> {
+    return new TextFieldValidator(() => ({
+      state: this,
+      renderedControl: this.inputOrTextarea,
+    }));
+  }
+
+  [getValidityAnchor](): HTMLElement | null {
+    return this.inputOrTextarea;
+  }
+
+  [onReportValidity](invalidEvent: Event | null) {
+    // Prevent default pop-up behavior.
+    invalidEvent?.preventDefault();
+
+    const prevMessage = this.getErrorText();
+    this.nativeError = !!invalidEvent;
+    this.nativeErrorText = this.validationMessage;
+
+    if (prevMessage === this.getErrorText()) {
+      this.field?.reannounceError();
+    }
   }
 }

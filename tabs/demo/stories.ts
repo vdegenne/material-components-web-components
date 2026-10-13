@@ -5,56 +5,46 @@
  */
 
 import '@material/web/icon/icon.js';
-import '@material/web/iconbutton/standard-icon-button.js';
+import '@material/web/iconbutton/icon-button.js';
+import '@material/web/tabs/primary-tab.js';
+import '@material/web/tabs/secondary-tab.js';
 import '@material/web/tabs/tabs.js';
 
 import {MaterialStoryInit} from './material-collection.js';
-import {MdTabs, TabVariant} from '@material/web/tabs/tabs.js';
+import {MdTabs} from '@material/web/tabs/tabs.js';
 import {css, html, nothing} from 'lit';
-import {classMap} from 'lit/directives/class-map.js';
+import {ref} from 'lit/directives/ref.js';
 
 /** Knob types for Tabs stories. */
 export interface StoryKnobs {
-  selected: number;
-  disabled: boolean;
-  selectOnFocus: boolean;
+  activeTabIndex: number;
+  autoActivate: boolean;
   inlineIcon: boolean;
   content: string;
 }
 
-// TODO(b/293506179): remove vertical logic and styles
 const styles = css`
-  .content:not([hidden]) {
-    display: flex;
-    align-items: center;
-    padding: 16px;
-    gap: 8px;
-    min-block-size: 24px;
+  [role='tabpanel']:not([hidden]) {
     font-family: Roboto, Material Sans, system-ui;
   }
 
-  .vertical:not([hidden]) {
-    display: inline-flex;
-    align-items: stretch;
+  [role='tabpanel']:not(.subtabs) {
+    padding: 16px;
   }
 
-  md-tabs:not([variant~="vertical"]) {
+  md-tabs {
     --inline-size: 50vw;
     min-inline-size: var(--inline-size);
   }
 
-  md-tabs:not([variant~="vertical"]).scrolling {
+  md-tabs.scrolling {
     inline-size: var(--inline-size);
-  }
-
-  md-tabs[variant~="vertical"].scrolling {
-    block-size: 50vh;
   }
 
   .controls {
     height: 48px;
   }
-  `;
+`;
 
 const primary: MaterialStoryInit<StoryKnobs> = {
   name: 'Primary Tabs',
@@ -62,35 +52,62 @@ const primary: MaterialStoryInit<StoryKnobs> = {
   render(knobs) {
     const tabContent = getTabContentGenerator(knobs);
     const inlineIcon = knobs.inlineIcon;
-    const vertical = '';
-    const variant = `primary ${vertical}` as TabVariant;
-    const classes = {vertical};
 
     return html`
       <md-tabs
-          class=${classMap(classes)}
-          .variant=${variant}
-          .selected=${knobs.selected}
-          .disabled=${knobs.disabled}
-          .selectOnFocus=${knobs.selectOnFocus}
-      >
-        <md-tab .inlineIcon=${inlineIcon}>
+        aria-label="Primary tabs"
+        .activeTabIndex=${knobs.activeTabIndex}
+        .autoActivate=${knobs.autoActivate}
+        ${setupTabPanels()}>
+        <md-primary-tab
+          id="tab-one"
+          aria-controls="panel-one"
+          .inlineIcon=${inlineIcon}>
           ${tabContent('piano', 'Keyboard')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-primary-tab>
+        <md-primary-tab
+          id="tab-two"
+          aria-controls="panel-two"
+          .inlineIcon=${inlineIcon}>
           ${tabContent('tune', 'Guitar')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-primary-tab>
+        <md-primary-tab
+          id="tab-three"
+          aria-controls="panel-three"
+          .inlineIcon=${inlineIcon}>
           ${tabContent('graphic_eq', 'Drums')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-primary-tab>
+        <md-primary-tab
+          id="tab-four"
+          aria-controls="panel-four"
+          .inlineIcon=${inlineIcon}>
           ${tabContent('speaker', 'Bass')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-primary-tab>
+        <md-primary-tab
+          id="tab-five"
+          aria-controls="panel-five"
+          .inlineIcon=${inlineIcon}>
           ${tabContent('nightlife', 'Saxophone')}
-        </md-tab>
-      </md-tabs>`;
-  }
+        </md-primary-tab>
+      </md-tabs>
+
+      <div role="tabpanel" id="panel-one" aria-labelledby="tab-one"
+        >Keyboard</div
+      >
+      <div role="tabpanel" id="panel-two" aria-labelledby="tab-two" hidden
+        >Guitar</div
+      >
+      <div role="tabpanel" id="panel-three" aria-labelledby="tab-three" hidden
+        >Drums</div
+      >
+      <div role="tabpanel" id="panel-four" aria-labelledby="tab-four" hidden
+        >Bass</div
+      >
+      <div role="tabpanel" id="panel-five" aria-labelledby="tab-five" hidden
+        >Saxophone</div
+      >
+    `;
+  },
 };
 
 const secondary: MaterialStoryInit<StoryKnobs> = {
@@ -98,33 +115,39 @@ const secondary: MaterialStoryInit<StoryKnobs> = {
   styles,
   render(knobs) {
     const tabContent = getTabContentGenerator(knobs);
-    const inlineIcon = knobs.inlineIcon;
-    const vertical = '';
-    const variant = `secondary ${vertical}` as TabVariant;
-    const classes = {vertical};
 
     return html`
       <md-tabs
-          class=${classMap(classes)}
-          .variant=${variant}
-          .selected=${knobs.selected}
-          .disabled=${knobs.disabled}
-          .selectOnFocus=${knobs.selectOnFocus}
-      >
-        <md-tab .inlineIcon=${inlineIcon}>
+        aria-label="Secondary tabs"
+        .activeTabIndex=${knobs.activeTabIndex}
+        .autoActivate=${knobs.autoActivate}
+        ${setupTabPanels()}>
+        <md-secondary-tab id="tab-one" aria-controls="panel-one">
           ${tabContent('flight', 'Travel')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-secondary-tab>
+        <md-secondary-tab id="tab-two" aria-controls="panel-two">
           ${tabContent('hotel', 'Hotel')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-secondary-tab>
+        <md-secondary-tab id="tab-three" aria-controls="panel-three">
           ${tabContent('hiking', 'Activities')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-secondary-tab>
+        <md-secondary-tab id="tab-four" aria-controls="panel-four">
           ${tabContent('restaurant', 'Food')}
-        </md-tab>
-      </md-tabs>`;
-  }
+        </md-secondary-tab>
+      </md-tabs>
+
+      <div role="tabpanel" id="panel-one" aria-labelledby="tab-one">Travel</div>
+      <div role="tabpanel" id="panel-two" aria-labelledby="tab-two" hidden
+        >Hotel</div
+      >
+      <div role="tabpanel" id="panel-three" aria-labelledby="tab-three" hidden
+        >Activities</div
+      >
+      <div role="tabpanel" id="panel-four" aria-labelledby="tab-four" hidden
+        >Food</div
+      >
+    `;
+  },
 };
 
 const scrolling: MaterialStoryInit<StoryKnobs> = {
@@ -133,37 +156,31 @@ const scrolling: MaterialStoryInit<StoryKnobs> = {
   render(knobs) {
     const tabContent = getTabContentGenerator(knobs);
     const inlineIcon = knobs.inlineIcon;
-    const vertical = '';
-    const variant = `primary ${vertical}` as TabVariant;
-    const classes = {vertical, scrolling: true};
 
-    return html`
-      <md-tabs
-          class=${classMap(classes)}
-          .variant=${variant}
-          .selected=${knobs.selected}
-          .disabled=${knobs.disabled}
-          .selectOnFocus=${knobs.selectOnFocus}
-      >
-        ${new Array(10).fill(html`
-        <md-tab .inlineIcon=${inlineIcon}>
+    return html` <md-tabs
+      aria-label="A tab bar that scrolls"
+      class="scrolling"
+      .activeTabIndex=${knobs.activeTabIndex}
+      .autoActivate=${knobs.autoActivate}>
+      ${new Array(10).fill(html`
+        <md-primary-tab .inlineIcon=${inlineIcon}>
           ${tabContent('piano', 'Keyboard')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-primary-tab>
+        <md-primary-tab .inlineIcon=${inlineIcon}>
           ${tabContent('tune', 'Guitar')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-primary-tab>
+        <md-primary-tab .inlineIcon=${inlineIcon}>
           ${tabContent('graphic_eq', 'Drums')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-primary-tab>
+        <md-primary-tab .inlineIcon=${inlineIcon}>
           ${tabContent('speaker', 'Bass')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-primary-tab>
+        <md-primary-tab .inlineIcon=${inlineIcon}>
           ${tabContent('nightlife', 'Saxophone')}
-        </md-tab>
-        `)}
-      </md-tabs>`;
-  }
+        </md-primary-tab>
+      `)}
+    </md-tabs>`;
+  },
 };
 
 const custom: MaterialStoryInit<StoryKnobs> = {
@@ -173,7 +190,8 @@ const custom: MaterialStoryInit<StoryKnobs> = {
     css`
       .custom {
         /* text */
-        --md-primary-tab-label-text-type: 0.8em cursive, system-ui;
+        --md-primary-tab-label-text-font: cursive, system-ui;
+        --md-primary-tab-label-text-size: 0.8em;
         /* indicator */
         --md-primary-tab-active-indicator-color: firebrick;
         --md-primary-tab-active-indicator-height: 8px;
@@ -188,40 +206,49 @@ const custom: MaterialStoryInit<StoryKnobs> = {
         --md-primary-tab-active-hover-label-text-color: var(--active-color);
         --md-primary-tab-active-pressed-icon-color: var(--active-color);
         --md-primary-tab-active-pressed-label-text-color: var(--active-color);
-        /* divider */
-        --md-primary-tab-divider-color: var(--active-color);
-        --md-primary-tab-divider-thickness: 4px;
-      }`,
+      }
+
+      .custom::part(divider) {
+        --md-divider-color: var(--active-color);
+        --md-divider-thickness: 4px;
+      }
+    `,
   ],
   render(knobs) {
     const tabContent = getTabContentGenerator(knobs);
-    const inlineIcon = knobs.inlineIcon;
-    const vertical = '';
-    const variant = `primary ${vertical}` as TabVariant;
-    const classes = {vertical, custom: true};
 
     return html`
       <md-tabs
-          class=${classMap(classes)}
-          .variant=${variant}
-          .selected=${knobs.selected}
-          .disabled=${knobs.disabled}
-          .selectOnFocus=${knobs.selectOnFocus}
-      >
-        <md-tab .inlineIcon=${inlineIcon}>
+        aria-label="A custom themed tab bar"
+        class="custom"
+        .activeTabIndex=${knobs.activeTabIndex}
+        .autoActivate=${knobs.autoActivate}>
+        <md-primary-tab id="tab-one" aria-controls="panel-one">
           ${tabContent('flight', 'Travel')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-primary-tab>
+        <md-primary-tab id="tab-two" aria-controls="panel-two">
           ${tabContent('hotel', 'Hotel')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-primary-tab>
+        <md-primary-tab id="tab-three" aria-controls="panel-three">
           ${tabContent('hiking', 'Activities')}
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
+        </md-primary-tab>
+        <md-primary-tab id="tab-four" aria-controls="panel-four">
           ${tabContent('restaurant', 'Food')}
-        </md-tab>
-      </md-tabs>`;
-  }
+        </md-primary-tab>
+      </md-tabs>
+
+      <div role="tabpanel" id="panel-one" aria-labelledby="tab-one">Travel</div>
+      <div role="tabpanel" id="panel-two" aria-labelledby="tab-two" hidden
+        >Hotel</div
+      >
+      <div role="tabpanel" id="panel-three" aria-labelledby="tab-three" hidden
+        >Activities</div
+      >
+      <div role="tabpanel" id="panel-four" aria-labelledby="tab-four" hidden
+        >Food</div
+      >
+    `;
+  },
 };
 
 const primaryAndSecondary: MaterialStoryInit<StoryKnobs> = {
@@ -230,102 +257,109 @@ const primaryAndSecondary: MaterialStoryInit<StoryKnobs> = {
   render(knobs) {
     const tabContent = getTabContentGenerator(knobs);
     const inlineIcon = knobs.inlineIcon;
-    const vertical = '';
-    const variant = `primary ${vertical}` as TabVariant;
-    const secondaryVariant = `secondary ${vertical}` as TabVariant;
-    const classes = {vertical};
-
-    // show the selected secondary tabs
-    const handlePrimaryTabsChange = ({target}: Event) => {
-      const primaryTabs = target as MdTabs;
-      const secondaryTabsContainer = primaryTabs.nextElementSibling!;
-      const secondaryTabsList = Array.from(
-          secondaryTabsContainer.querySelectorAll<MdTabs>('md-tabs'));
-      secondaryTabsList.forEach((secondaryTabs, i) => {
-        const hidden = i === primaryTabs.selected ? false : true;
-        secondaryTabs.hidden = hidden;
-        (secondaryTabs.nextElementSibling! as HTMLElement).hidden = hidden;
-      });
-    };
-
-    // renders some relevant tabbed content based on the current selection
-    function handleSecondaryTabsChange({target}: Event) {
-      const secondaryTabs = target as MdTabs;
-      const contentContainer = secondaryTabs.nextElementSibling!;
-      const content = Array.from(secondaryTabs.selectedItem?.childNodes ?? [])
-                          .map(child => child.cloneNode(true));
-      contentContainer.replaceChildren(...content);
-    }
 
     return html`
-      <div class="${classMap(classes)}">
+      <md-tabs
+        aria-label="Primary tabs"
+        .activeTabIndex=${knobs.activeTabIndex}
+        .autoActivate=${knobs.autoActivate}
+        ${setupTabPanels()}>
+        <md-primary-tab .inlineIcon=${inlineIcon} aria-controls="movies">
+          ${tabContent('videocam', 'Movies')}
+        </md-primary-tab>
+        <md-primary-tab .inlineIcon=${inlineIcon} aria-controls="photos">
+          ${tabContent('photo', 'Photos')}
+        </md-primary-tab>
+        <md-primary-tab .inlineIcon=${inlineIcon} aria-controls="music">
+          ${tabContent('audiotrack', 'Music')}
+        </md-primary-tab>
+      </md-tabs>
+
+      <div role="tabpanel" id="movies" class="subtabs" aria-label="Movies">
         <md-tabs
-          class=${classMap(classes)}
-          .variant=${variant}
-          .selected=${knobs.selected}
-          .disabled=${knobs.disabled}
-          .selectOnFocus=${knobs.selectOnFocus}
-          @change=${handlePrimaryTabsChange}
-        >
-          <md-tab .inlineIcon=${inlineIcon}>
-            ${tabContent('videocam', 'Movies')}
-          </md-tab>
-          <md-tab .inlineIcon=${inlineIcon}>
-            ${tabContent('photo', 'Photos')}
-          </md-tab>
-          <md-tab .inlineIcon=${inlineIcon}>
-            ${tabContent('audiotrack', 'Music')}
-          </md-tab>
+          aria-label="Secondary tabs for movies"
+          .activeTabIndex=${knobs.activeTabIndex}
+          .autoActivate=${knobs.autoActivate}
+          ${setupTabPanels()}>
+          <md-secondary-tab aria-controls="star-wars"
+            >Star Wars</md-secondary-tab
+          >
+          <md-secondary-tab aria-controls="avengers">Avengers</md-secondary-tab>
+          <md-secondary-tab aria-controls="jaws">Jaws</md-secondary-tab>
+          <md-secondary-tab aria-controls="forzen">Frozen</md-secondary-tab>
         </md-tabs>
-        <div class=${classMap(classes)}>
-          <md-tabs
-            class=${classMap(classes)}
-            .variant=${secondaryVariant}
-            .selected=${knobs.selected}
-            .disabled=${knobs.disabled}
-            .selectOnFocus=${knobs.selectOnFocus}
-            @change=${handleSecondaryTabsChange}
-          >
-            <md-tab >Star Wars</md-tab>
-            <md-tab>Avengers</md-tab>
-            <md-tab>Jaws</md-tab>
-            <md-tab>Frozen</md-tab>
-          </md-tabs>
-          <div class="content ${classMap(classes)}"></div>
-          <md-tabs
-            hidden
-            class=${classMap(classes)}
-            .variant=${secondaryVariant}
-            .selected=${knobs.selected}
-            .disabled=${knobs.disabled}
-            .selectOnFocus=${knobs.selectOnFocus}
-            @change=${handleSecondaryTabsChange}
-          >
-            <md-tab>Yosemite</md-tab>
-            <md-tab>Mona Lisa</md-tab>
-            <md-tab>Swiss Alps</md-tab>
-            <md-tab>Niagra Falls</md-tab>
-          </md-tabs>
-          <div hidden class="content ${classMap(classes)}"></div>
-          <md-tabs
-            hidden
-            class=${classMap(classes)}
-            .variant=${secondaryVariant}
-            .selected=${knobs.selected}
-            .disabled=${knobs.disabled}
-            .selectOnFocus=${knobs.selectOnFocus}
-            @change=${handleSecondaryTabsChange}
-          >
-            <md-tab>Rock</md-tab>
-            <md-tab>Ambient</md-tab>
-            <md-tab>Soundscapes</md-tab>
-            <md-tab>White Noise</md-tab>
-          </md-tabs>
-          <div hidden class="content ${classMap(classes)}"></div>
-        </div>
+
+        <div role="tabpanel" id="star-wars" aria-label="Star Wars"
+          >Star Wars</div
+        >
+        <div role="tabpanel" id="avengers" aria-label="Avengers" hidden
+          >Avengers</div
+        >
+        <div role="tabpanel" id="jaws" aria-label="Jaws" hidden>Jaws</div>
+        <div role="tabpanel" id="frozen" aria-label="Frozen" hidden>Frozen</div>
       </div>
-      `;
-  }
+
+      <div
+        role="tabpanel"
+        id="photos"
+        class="subtabs"
+        aria-label="Photos"
+        hidden>
+        <md-tabs
+          aria-label="Secondary tabs for photos"
+          .activeTabIndex=${knobs.activeTabIndex}
+          .autoActivate=${knobs.autoActivate}>
+          <md-secondary-tab aria-controls="yosemite">Yosemite</md-secondary-tab>
+          <md-secondary-tab aria-controls="mona-lisa"
+            >Mona Lisa</md-secondary-tab
+          >
+          <md-secondary-tab aria-controls="swiss-alps"
+            >Swiss Alps</md-secondary-tab
+          >
+          <md-secondary-tab aria-controls="niagra-falls"
+            >Niagra Falls</md-secondary-tab
+          >
+        </md-tabs>
+
+        <div role="tabpanel" id="yosemite" aria-label="Yosemite">Yosemite</div>
+        <div role="tabpanel" id="mona-lisa" aria-label="Mona Lisa" hidden
+          >Mona Lisa</div
+        >
+        <div role="tabpanel" id="swiss-alps" aria-label="Swiss Alps" hidden
+          >Swiss Alps</div
+        >
+        <div role="tabpanel" id="niagra-falls" aria-label="Niagra Falls" hidden
+          >Niagra Falls</div
+        >
+      </div>
+
+      <div role="tabpanel" id="music" class="subtabs" aria-label="Music" hidden>
+        <md-tabs
+          aria-label="Secondary tabs for music"
+          .activeTabIndex=${knobs.activeTabIndex}
+          .autoActivate=${knobs.autoActivate}
+          ${setupTabPanels()}>
+          <md-secondary-tab aria-controls="rock">Rock</md-secondary-tab>
+          <md-secondary-tab aria-controls="ambient">Ambient</md-secondary-tab>
+          <md-secondary-tab aria-controls="sounds"
+            >Soundscapes</md-secondary-tab
+          >
+          <md-secondary-tab aria-controls="noise">White Noise</md-secondary-tab>
+        </md-tabs>
+
+        <div role="tabpanel" id="rock" aria-label="Rock">Rock</div>
+        <div role="tabpanel" id="ambient" aria-label="Ambient" hidden
+          >Ambient</div
+        >
+        <div role="tabpanel" id="sounds" aria-label="Soundscapes" hidden
+          >Soundscapes</div
+        >
+        <div role="tabpanel" id="noise" aria-label="White noise" hidden
+          >White Noise</div
+        >
+      </div>
+    `;
+  },
 };
 
 const dynamic: MaterialStoryInit<StoryKnobs> = {
@@ -333,85 +367,68 @@ const dynamic: MaterialStoryInit<StoryKnobs> = {
   styles,
   render(knobs) {
     const inlineIcon = knobs.inlineIcon;
-    const vertical = '';
-    const variant = `primary ${vertical}` as TabVariant;
-    const classes = {vertical, scrolling: true};
 
     function getTabs(event: Event) {
-      return ((event.target! as Element).getRootNode() as ShadowRoot)
-          .querySelector('md-tabs')!;
+      return (
+        (event.target! as Element).getRootNode() as ShadowRoot
+      ).querySelector('md-tabs')!;
     }
 
     function addTab(event: Event) {
       const tabs = getTabs(event);
       const count = tabs.childElementCount;
-      const tab = document.createElement('md-tab');
+      const tab = document.createElement('md-primary-tab');
       tab.textContent = `Tab ${count + 1}`;
-      if (tabs.selectedItem !== undefined) {
-        tabs.selectedItem.after(tab);
-        tabs.selected++;
-      } else {
-        tabs.append(tab);
-        tabs.selected = count;
-      }
+      tabs.append(tab);
     }
     function removeTab(event: Event) {
       const tabs = getTabs(event);
-      if (tabs.selectedItem === undefined) {
-        return;
-      }
-      tabs.selectedItem?.remove();
-      const count = tabs.childElementCount;
-      tabs.selected = Math.min(count - 1, tabs.selected);
+      tabs.tabs[tabs.tabs.length - 1]?.remove();
     }
 
     function moveTabTowardsEnd(event: Event) {
       const tabs = getTabs(event);
-      const next = tabs.selectedItem?.nextElementSibling;
+      if (!tabs.activeTab) {
+        return;
+      }
+      const next = tabs.activeTab.nextElementSibling;
       if (next) {
-        next.after(tabs.selectedItem);
-        tabs.selected++;
+        next.after(tabs.activeTab);
       }
     }
 
     function moveTabTowardsStart(event: Event) {
       const tabs = getTabs(event);
-      const previous = tabs.selectedItem?.previousElementSibling;
+      if (!tabs.activeTab) {
+        return;
+      }
+      const previous = tabs.activeTab.previousElementSibling;
       if (previous) {
-        previous.before(tabs.selectedItem);
-        tabs.selected--;
+        previous.before(tabs.activeTab);
       }
     }
 
-    return html`
-      <div class="controls">
-        <md-standard-icon-button @click=${
-        addTab}><md-icon>add</md-icon></md-standard-icon-button>
-        <md-standard-icon-button @click=${
-        removeTab}><md-icon>remove</md-icon></md-standard-icon-button>
-        <md-standard-icon-button @click=${
-        moveTabTowardsStart}><md-icon>chevron_left</md-icon></md-standard-icon-button>
-        <md-standard-icon-button @click=${
-        moveTabTowardsEnd}><md-icon>chevron_right</md-icon></md-standard-icon-button>
+    return html` <div class="controls">
+        <md-icon-button @click=${addTab}><md-icon>add</md-icon></md-icon-button>
+        <md-icon-button @click=${removeTab}
+          ><md-icon>remove</md-icon></md-icon-button
+        >
+        <md-icon-button @click=${moveTabTowardsStart}
+          ><md-icon>chevron_left</md-icon></md-icon-button
+        >
+        <md-icon-button @click=${moveTabTowardsEnd}
+          ><md-icon>chevron_right</md-icon></md-icon-button
+        >
       </div>
       <md-tabs
-          class=${classMap(classes)}
-          .variant=${variant}
-          .selected=${knobs.selected}
-          .disabled=${knobs.disabled}
-          .selectOnFocus=${knobs.selectOnFocus}
-      >
-        <md-tab .inlineIcon=${inlineIcon}>
-          Tab 1
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
-          Tab 2
-        </md-tab>
-        <md-tab .inlineIcon=${inlineIcon}>
-          Tab 3
-        </md-tab>
+        class="scrolling"
+        .activeTabIndex=${knobs.activeTabIndex}
+        .autoActivate=${knobs.autoActivate}>
+        <md-primary-tab .inlineIcon=${inlineIcon}> Tab 1 </md-primary-tab>
+        <md-primary-tab .inlineIcon=${inlineIcon}> Tab 2 </md-primary-tab>
+        <md-primary-tab .inlineIcon=${inlineIcon}> Tab 3 </md-primary-tab>
       </md-tabs>`;
-  }
+  },
 };
 
 function getTabContentGenerator(knobs: StoryKnobs) {
@@ -419,15 +436,42 @@ function getTabContentGenerator(knobs: StoryKnobs) {
   const useIcon = contentKnob !== 'label';
   const useLabel = contentKnob !== 'icon';
   return (icon: string, label: string) => {
-    const iconTemplate =
-        html`<md-icon aria-hidden="true" slot="icon">${icon}</md-icon>`;
+    const iconTemplate = html`<md-icon slot="icon">${icon}</md-icon>`;
     return html`
-      ${useIcon ? iconTemplate : nothing}
-      ${useLabel ? html`${label}` : nothing}
+      ${useIcon ? iconTemplate : nothing} ${useLabel ? html`${label}` : nothing}
     `;
   };
 }
 
+function setupTabPanels() {
+  return ref((instance) => {
+    if (!instance) {
+      return;
+    }
+
+    const tabs = instance as MdTabs;
+    let currentPanel: HTMLElement | null = null;
+    tabs.addEventListener('change', () => {
+      if (currentPanel) {
+        currentPanel.hidden = true;
+      }
+
+      const panelId = tabs.activeTab?.getAttribute('aria-controls');
+      const root = tabs.getRootNode() as Document | ShadowRoot;
+      currentPanel = root.querySelector<HTMLElement>(`#${panelId}`);
+      if (currentPanel) {
+        currentPanel.hidden = false;
+      }
+    });
+  });
+}
+
 /** Tabs stories. */
-export const stories =
-    [primary, secondary, scrolling, custom, primaryAndSecondary, dynamic];
+export const stories = [
+  primary,
+  secondary,
+  scrolling,
+  custom,
+  primaryAndSecondary,
+  dynamic,
+];

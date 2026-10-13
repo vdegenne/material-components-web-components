@@ -2,6 +2,7 @@ node_modules
 *.js
 !web-test-runner.config.js
 !css-to-ts.js
+!commitlint.config.js
 *.css
 *.css.ts
 *.map
@@ -18,6 +19,10 @@ catalog/lib/
 catalog/build/
 catalog/site/components/*.md
 catalog/site/components/images
+catalog/site/theming/*.md
+catalog/site/theming/images
+catalog/site/about/*.md
+catalog/site/about/images
 catalog/*.tsbuildinfo
 catalog/stories/*/
 !catalog/stories/components/

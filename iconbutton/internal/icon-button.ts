@@ -10,23 +10,47 @@ import '../../ripple/ripple.js';
 import {html, LitElement, nothing} from 'lit';
 import {property, state} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
-import {html as staticHtml, literal} from 'lit/static-html.js';
+import {literal, html as staticHtml} from 'lit/static-html.js';
 
 import {ARIAMixinStrict} from '../../internal/aria/aria.js';
 import {requestUpdateOnAriaChange} from '../../internal/aria/delegate.js';
+import {
+  FormSubmitter,
+  setupFormSubmitter,
+  type FormSubmitterType,
+} from '../../internal/controller/form-submitter.js';
 import {isRtl} from '../../internal/controller/is-rtl.js';
+import {
+  internals,
+  mixinElementInternals,
+} from '../../labs/behaviors/element-internals.js';
 
-type LinkTarget = '_blank'|'_parent'|'_self'|'_top';
+type LinkTarget = '_blank' | '_parent' | '_self' | '_top';
 
-// tslint:disable-next-line:enforce-comments-on-exported-symbols
-export class IconButton extends LitElement {
+// Separate variable needed for closure.
+const iconButtonBaseClass = mixinElementInternals(LitElement);
+
+/**
+ * A button for rendering icons.
+ *
+ * @fires input {InputEvent} Dispatched when a toggle button toggles --bubbles
+ * --composed
+ * @fires change {Event} Dispatched when a toggle button toggles --bubbles
+ */
+export class IconButton extends iconButtonBaseClass implements FormSubmitter {
   static {
-    requestUpdateOnAriaChange(this);
+    requestUpdateOnAriaChange(IconButton);
+    setupFormSubmitter(IconButton);
   }
 
   /** @nocollapse */
-  static override shadowRootOptions:
-      ShadowRootInit = {mode: 'open', delegatesFocus: true};
+  static readonly formAssociated = true;
+
+  /** @nocollapse */
+  static override shadowRootOptions: ShadowRootInit = {
+    mode: 'open',
+    delegatesFocus: true,
+  };
 
   /**
    * Disables the icon button and makes it non-interactive.
@@ -47,13 +71,12 @@ export class IconButton extends LitElement {
   /**
    * Sets the underlying `HTMLAnchorElement`'s `target` attribute.
    */
-  @property() target = '';
+  @property() target: LinkTarget | '' = '';
 
   /**
    * The `aria-label` of the button when the button is toggleable and selected.
    */
-  @property({attribute: 'selected-aria-label', reflect: true})
-  selectedAriaLabel!: string;
+  @property({attribute: 'aria-label-selected'}) ariaLabelSelected = '';
 
   /**
    * When true, the button will toggle between selected and unselected
@@ -63,17 +86,50 @@ export class IconButton extends LitElement {
 
   /**
    * Sets the selected state. When false, displays the default icon. When true,
-   * displays the `selectedIcon`, or the default icon If no `selectedIcon` is
-   * provided.
+   * displays the selected icon, or the default icon If no `slot="selected"`
+   * icon is provided.
    */
   @property({type: Boolean, reflect: true}) selected = false;
+
+  /**
+   * The default behavior of the button. May be "text", "reset", or "submit"
+   * (default).
+   */
+  @property() type: FormSubmitterType = 'submit';
+
+  /**
+   * The value added to a form with the button's name when the button submits a
+   * form.
+   */
+  @property({reflect: true}) value = '';
+
+  get name() {
+    return this.getAttribute('name') ?? '';
+  }
+  set name(name: string) {
+    this.setAttribute('name', name);
+  }
+
+  /**
+   * The associated form element with which this element's value will submit.
+   */
+  get form() {
+    return this[internals].form;
+  }
+
+  /**
+   * The labels this element is associated with.
+   */
+  get labels() {
+    return this[internals].labels;
+  }
 
   @state() private flipIcon = isRtl(this, this.flipIconInRtl);
 
   /**
    * Link buttons cannot be disabled.
    */
-  override willUpdate() {
+  protected override willUpdate() {
     if (this.href) {
       this.disabled = false;
     }
@@ -83,20 +139,21 @@ export class IconButton extends LitElement {
     const tag = this.href ? literal`div` : literal`button`;
     // Needed for closure conformance
     const {ariaLabel, ariaHasPopup, ariaExpanded} = this as ARIAMixinStrict;
-    const hasToggledAriaLabel = ariaLabel && this.selectedAriaLabel;
-    const ariaPressedValue = hasToggledAriaLabel ? nothing : this.selected;
-    let ariaLabelValue: string|null|typeof nothing = nothing;
+    const hasToggledAriaLabel = ariaLabel && this.ariaLabelSelected;
+    const ariaPressedValue = !this.toggle ? nothing : this.selected;
+    let ariaLabelValue: string | null | typeof nothing = nothing;
     if (!this.href) {
-      ariaLabelValue = (hasToggledAriaLabel && this.selected) ?
-          this.selectedAriaLabel :
-          ariaLabel;
+      ariaLabelValue =
+        hasToggledAriaLabel && this.selected
+          ? this.ariaLabelSelected
+          : ariaLabel;
     }
     return staticHtml`<${tag}
         class="icon-button ${classMap(this.getRenderClasses())}"
         id="button"
         aria-label="${ariaLabelValue || nothing}"
-        aria-haspopup="${!this.href && ariaHasPopup || nothing}"
-        aria-expanded="${!this.href && ariaExpanded || nothing}"
+        aria-haspopup="${(!this.href && ariaHasPopup) || nothing}"
+        aria-expanded="${(!this.href && ariaExpanded) || nothing}"
         aria-pressed="${ariaPressedValue}"
         ?disabled="${!this.href && this.disabled}"
         @click="${this.handleClick}">
@@ -113,12 +170,12 @@ export class IconButton extends LitElement {
     // Needed for closure conformance
     const {ariaLabel} = this as ARIAMixinStrict;
     return html`
-      <a class="link"
+      <a
+        class="link"
         id="link"
         href="${this.href}"
-        target="${this.target as LinkTarget || nothing}"
-        aria-label="${ariaLabel || nothing}"
-      ></a>
+        target="${this.target || nothing}"
+        aria-label="${ariaLabel || nothing}"></a>
     `;
   }
 
@@ -135,7 +192,9 @@ export class IconButton extends LitElement {
 
   private renderSelectedIcon() {
     // Use default slot as fallback to not require specifying multiple icons
-    return html`<span class="icon icon--selected"><slot name="selectedIcon"><slot></slot></slot></span>`;
+    return html`<span class="icon icon--selected"
+      ><slot name="selected"><slot></slot></slot
+    ></span>`;
   }
 
   private renderTouchTarget() {
@@ -143,15 +202,17 @@ export class IconButton extends LitElement {
   }
 
   private renderFocusRing() {
-    return html`<md-focus-ring part="focus-ring" for=${
-        this.href ? 'link' : 'button'}></md-focus-ring>`;
+    // TODO(b/310046938): use the same id for both elements
+    return html`<md-focus-ring
+      part="focus-ring"
+      for=${this.href ? 'link' : 'button'}></md-focus-ring>`;
   }
 
   private renderRipple() {
+    // TODO(b/310046938): use the same id for both elements
     return html`<md-ripple
       for=${this.href ? 'link' : nothing}
-      ?disabled="${!this.href && this.disabled}"
-    ></md-ripple>`;
+      ?disabled="${!this.href && this.disabled}"></md-ripple>`;
   }
 
   override connectedCallback() {
@@ -159,14 +220,17 @@ export class IconButton extends LitElement {
     super.connectedCallback();
   }
 
-  private handleClick() {
-    if (!this.toggle || this.disabled) {
+  private async handleClick(event: Event) {
+    // Allow the event to propagate
+    await 0;
+    if (!this.toggle || this.disabled || event.defaultPrevented) {
       return;
     }
 
     this.selected = !this.selected;
     this.dispatchEvent(
-        new InputEvent('input', {bubbles: true, composed: true}));
+      new InputEvent('input', {bubbles: true, composed: true}),
+    );
     // Bubbles but does not compose to mimic native browser <input> & <select>
     // Additionally, native change event is not an InputEvent.
     this.dispatchEvent(new Event('change', {bubbles: true}));

@@ -4,12 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
-import '@material/web/progress/linear-progress.js';
-import '@material/web/button/tonal-button.js';
+import '@material/web/button/filled-tonal-button.js';
 import '@material/web/icon/icon.js';
-import '@material/web/iconbutton/standard-icon-button.js';
+import '@material/web/iconbutton/icon-button.js';
 import '@material/web/progress/circular-progress.js';
+import '@material/web/progress/linear-progress.js';
 
 import {MaterialStoryInit} from './material-collection.js';
 import {MdCircularProgress} from '@material/web/progress/circular-progress.js';
@@ -37,7 +36,10 @@ const linear: MaterialStoryInit<StoryKnobs> = {
     }
 
     .custom {
-      --md-linear-progress-active-indicator-color: linear-gradient(steelblue, lightblue);
+      --md-linear-progress-active-indicator-color: linear-gradient(
+        steelblue,
+        lightblue
+      );
       --md-linear-progress-track-color: gainsboro;
       --md-linear-progress-active-indicator-height: 20px;
       --md-linear-progress-track-height: 20px;
@@ -49,16 +51,15 @@ const linear: MaterialStoryInit<StoryKnobs> = {
     const buffer = knobs['buffer (linear)'];
     const classes = {'custom': knobs['custom theme (linear)']};
 
-    return html`
-      <md-linear-progress
-          class=${classMap(classes)}
-          .value=${value}
-          .max=${max}
-          .buffer=${buffer}
-          .indeterminate=${indeterminate}
-          .fourColor=${fourColor}
-      ></md-linear-progress>`;
-  }
+    return html` <md-linear-progress
+      aria-label="An example linear progress bar"
+      class=${classMap(classes)}
+      .value=${value}
+      .max=${max}
+      .buffer=${buffer}
+      .indeterminate=${indeterminate}
+      .fourColor=${fourColor}></md-linear-progress>`;
+  },
 };
 
 const circular: MaterialStoryInit<StoryKnobs> = {
@@ -70,8 +71,7 @@ const circular: MaterialStoryInit<StoryKnobs> = {
         value=${value}
         max=${max}
         ?indeterminate=${indeterminate}
-        ?four-color=${fourColor}
-      ></md-circular-progress>
+        ?four-color=${fourColor}></md-circular-progress>
     `;
   },
 };
@@ -86,14 +86,14 @@ const components: MaterialStoryInit<StoryKnobs> = {
       gap: 32px;
     }
 
-    md-tonal-button {
+    md-filled-tonal-button {
       width: 80px;
     }
 
-    md-tonal-button md-circular-progress {
+    md-filled-tonal-button md-circular-progress {
       --md-circular-progress-size: 36px;
       --md-circular-progress-active-indicator-width: ${(4 / 36) * 100};
-      --md-tonal-button-with-icon-spacing-trailing: 8px;
+      --md-filled-tonal-button-with-leading-icon-trailing-space: 8px;
     }
 
     .around-icon {
@@ -102,7 +102,7 @@ const components: MaterialStoryInit<StoryKnobs> = {
       width: 48px;
     }
 
-    .around-icon md-standard-icon-button {
+    .around-icon md-icon-button {
       inset: 0;
       margin: auto;
       position: absolute;
@@ -110,9 +110,9 @@ const components: MaterialStoryInit<StoryKnobs> = {
   `,
   render({value, max}) {
     const toggleIndeterminate = ({target}: Event) => {
-      const spinner =
-          ((target as HTMLElement)
-               .parentElement?.querySelector('md-circular-progress'));
+      const spinner = (target as HTMLElement).parentElement?.querySelector(
+        'md-circular-progress',
+      );
       if (!spinner) {
         return;
       }
@@ -137,26 +137,30 @@ const components: MaterialStoryInit<StoryKnobs> = {
 
     return html`
       <div class="components">
-        <md-tonal-button @click=${toggleLoad}>
-          <md-circular-progress style="display: none" indeterminate
+        <md-filled-tonal-button @click=${toggleLoad}>
+          <md-circular-progress
+            style="display: none"
+            indeterminate
             aria-label="Loading, please wait"></md-circular-progress>
           <span>Load</span>
-        </md-tonal-button>
+        </md-filled-tonal-button>
 
         <div class="around-icon">
-          <md-circular-progress value=${value} max=${max}
+          <md-circular-progress
+            value=${value}
+            max=${max}
             aria-label="Playback progress"></md-circular-progress>
-          <md-standard-icon-button toggle
+          <md-icon-button
+            toggle
             aria-label="Play or pause music"
-            @change=${toggleIndeterminate}
-          >
+            @change=${toggleIndeterminate}>
             <md-icon>play_arrow</md-icon>
-            <md-icon slot="selectedIcon">pause</md-icon>
-          </md-standard-icon-button>
+            <md-icon slot="selected">pause</md-icon>
+          </md-icon-button>
         </div>
       </div>
     `;
-  }
+  },
 };
 
 /** Linear Progress stories. */

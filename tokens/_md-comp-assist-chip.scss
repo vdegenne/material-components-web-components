@@ -1,19 +1,19 @@
+//
 // Copyright 2023 Google LLC
 // SPDX-License-Identifier: Apache-2.0
-//
 //
 
 // go/keep-sorted start
 @use 'sass:map';
 // go/keep-sorted end
 // go/keep-sorted start
+@use './internal/validate';
 @use './md-sys-color';
 @use './md-sys-elevation';
 @use './md-sys-shape';
 @use './md-sys-state';
 @use './md-sys-typescale';
-@use './v0_172/md-comp-assist-chip';
-@use './values';
+@use './v0_192/md-comp-assist-chip';
 // go/keep-sorted end
 
 $supported-tokens: (
@@ -42,16 +42,23 @@ $supported-tokens: (
   'hover-leading-icon-color',
   'hover-state-layer-color',
   'hover-state-layer-opacity',
+  'icon-label-space',
   'icon-size',
   'label-text-color',
-  'label-text-type',
+  'label-text-font',
+  'label-text-line-height',
+  'label-text-size',
+  'label-text-weight',
   'leading-icon-color',
+  'leading-space',
   'outline-color',
   'outline-width',
   'pressed-label-text-color',
   'pressed-leading-icon-color',
   'pressed-state-layer-color',
   'pressed-state-layer-opacity',
+  'trailing-space',
+  'with-leading-icon-leading-space',
   // go/keep-sorted end
 );
 
@@ -65,11 +72,8 @@ $unsupported-tokens: (
   'dragged-state-layer-opacity',
   'focus-state-layer-color',
   'focus-state-layer-opacity',
-  'label-text-font',
-  'label-text-line-height',
-  'label-text-size',
   'label-text-tracking',
-  'label-text-weight',
+  'label-text-type',
   // go/keep-sorted end
 );
 
@@ -82,10 +86,17 @@ $_default: (
 );
 
 @function values($deps: $_default, $exclude-hardcoded-values: false) {
-  $tokens: values.validate(
+  $tokens: validate.values(
     md-comp-assist-chip.values($deps, $exclude-hardcoded-values),
     $supported-tokens: $supported-tokens,
     $unsupported-tokens: $unsupported-tokens,
+    $new-tokens: (
+      'leading-space': if($exclude-hardcoded-values, null, 16px),
+      'trailing-space': if($exclude-hardcoded-values, null, 16px),
+      'icon-label-space': if($exclude-hardcoded-values, null, 8px),
+      'with-leading-icon-leading-space':
+        if($exclude-hardcoded-values, null, 8px),
+    ),
     $renamed-tokens: (
       // Remove "flat-*" prefix (b/275577569)
       'flat-container-elevation': 'container-elevation',
@@ -104,14 +115,6 @@ $_default: (
       'with-icon-icon-color': 'leading-icon-color',
       'with-icon-icon-size': 'icon-size',
       'with-icon-pressed-icon-color': 'pressed-leading-icon-color'
-    )
-  );
-
-  // TODO(b/271876162): remove when tokens compiler emits typescale tokens
-  $tokens: map.merge(
-    $tokens,
-    (
-      'label-text-type': map.get($deps, 'md-sys-typescale', 'label-large'),
     )
   );
 

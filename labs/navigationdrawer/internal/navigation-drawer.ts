@@ -14,15 +14,18 @@ import {ARIAMixinStrict} from '../../../internal/aria/aria.js';
 import {requestUpdateOnAriaChange} from '../../../internal/aria/delegate.js';
 
 /**
- * TODO(b/265346501): add docs
+ * b/265346501 - add docs
+ *
+ * @fires navigation-drawer-changed {CustomEvent<{opened: boolean}>}
+ * Dispatched whenever the drawer opens or closes --bubbles --composed
  */
 export class NavigationDrawer extends LitElement {
   static {
-    requestUpdateOnAriaChange(this);
+    requestUpdateOnAriaChange(NavigationDrawer);
   }
 
   @property({type: Boolean}) opened = false;
-  @property() pivot: 'start'|'end' = 'end';
+  @property() pivot: 'start' | 'end' = 'end';
 
   protected override render() {
     const ariaExpanded = this.opened ? 'true' : 'false';
@@ -52,13 +55,18 @@ export class NavigationDrawer extends LitElement {
     });
   }
 
-  protected override updated(changedProperties:
-                                 PropertyValues<NavigationDrawer>) {
+  protected override updated(
+    changedProperties: PropertyValues<NavigationDrawer>,
+  ) {
     if (changedProperties.has('opened')) {
       setTimeout(() => {
-        this.dispatchEvent(new CustomEvent(
-            'navigation-drawer-changed',
-            {detail: {opened: this.opened}, bubbles: true, composed: true}));
+        this.dispatchEvent(
+          new CustomEvent('navigation-drawer-changed', {
+            detail: {opened: this.opened},
+            bubbles: true,
+            composed: true,
+          }),
+        );
       }, 250);
     }
   }

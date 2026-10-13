@@ -22,27 +22,30 @@ export class MenuHarness extends Harness<Menu> {
    */
   protected override async getInteractiveElement() {
     await this.element.updateComplete;
-    await this.show();
-    return (await this.getItems())[0].getInteractiveElement();
+    return this.element as Menu;
   }
 
   /** @return ListItem harnesses for the menu's items. */
   getItems() {
     return this.element.items.map(
-        (item) => new MenuItemHarness(item as typeof item&LitElement));
+      (item) => new MenuItemHarness(item as typeof item & LitElement),
+    );
   }
 
-  async show(quick = true) {
+  async show() {
     const menu = this.element;
-    menu.quick = quick;
     if (menu.open) {
       return;
     }
 
     const opened = new Promise((resolve) => {
-      menu.addEventListener('opened', () => {
-        resolve(true);
-      }, {once: true});
+      menu.addEventListener(
+        'opened',
+        () => {
+          resolve(true);
+        },
+        {once: true},
+      );
     });
 
     menu.show();

@@ -24,7 +24,7 @@ import {ARIA_PROPERTIES, ariaPropertyToAttribute} from './aria.js';
  * @example
  * class XButton extends LitElement {
  *   static {
- *     requestUpdateOnAriaChange(this);
+ *     requestUpdateOnAriaChange(XButton);
  *   }
  *
  *   protected override render() {
@@ -46,11 +46,11 @@ export function requestUpdateOnAriaChange(ctor: typeof ReactiveElement) {
     });
   }
 
-  ctor.addInitializer(element => {
+  ctor.addInitializer((element) => {
     const controller = {
       hostConnected() {
         element.setAttribute('role', 'presentation');
-      }
+      },
     };
 
     element.addController(controller);

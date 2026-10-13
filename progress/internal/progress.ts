@@ -16,7 +16,7 @@ import {requestUpdateOnAriaChange} from '../../internal/aria/delegate.js';
  */
 export abstract class Progress extends LitElement {
   static {
-    requestUpdateOnAriaChange(this);
+    requestUpdateOnAriaChange(Progress);
   }
 
   /**
@@ -44,13 +44,15 @@ export abstract class Progress extends LitElement {
     // Needed for closure conformance
     const {ariaLabel} = this as ARIAMixinStrict;
     return html`
-      <div class="progress ${classMap(this.getRenderClasses())}"
+      <div
+        class="progress ${classMap(this.getRenderClasses())}"
         role="progressbar"
         aria-label="${ariaLabel || nothing}"
         aria-valuemin="0"
         aria-valuemax=${this.max}
         aria-valuenow=${this.indeterminate ? nothing : this.value}
-      >${this.renderIndicator()}</div>
+        >${this.renderIndicator()}</div
+      >
     `;
   }
 

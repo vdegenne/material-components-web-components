@@ -12,33 +12,33 @@
 // go/keep-sorted start
 @use '../../../focus/focus-ring';
 @use '../../../internal/motion/animation';
-@use '../../../internal/sass/theme';
 @use '../../../ripple/ripple';
 @use '../../../tokens';
 @use '../../badge/badge';
 // go/keep-sorted end
 
 $animation-duration: 100ms;
-$_custom-property-prefix: 'navigation-bar';
 
 @mixin theme($tokens) {
-  $tokens: theme.validate-theme(
-    tokens.md-comp-navigation-bar-values(),
-    $tokens
-  );
+  // $supported-tokens: tokens.$md-comp-navigation-bar-supported-tokens;
 
-  $tokens: theme.create-theme-vars($tokens, $_custom-property-prefix);
+  @each $token, $value in $tokens {
+    // @if list.index($supported-tokens, $token) == null {
+    //   @error 'Token `#{$token}` is not a supported token.';
+    // }
 
-  @include theme.emit-theme-vars($tokens);
+    @if $value {
+      --md-navigation-bar-#{$token}: #{$value};
+    }
+  }
 }
 
 @mixin styles() {
   $tokens: tokens.md-comp-navigation-bar-values();
-  $tokens: theme.create-theme-vars($tokens, $_custom-property-prefix);
 
   :host {
     @each $token, $value in $tokens {
-      --_#{$token}: #{$value};
+      --_#{$token}: var(--md-navigation-bar-#{$token}, #{$value});
     }
 
     display: flex;
@@ -72,7 +72,10 @@ $_custom-property-prefix: 'navigation-bar';
     position: relative;
     text-align: center;
     width: 100%;
-    font: var(--_label-text-type);
+    font-family: var(--_label-text-font);
+    font-size: var(--_label-text-size);
+    line-height: var(--_label-text-line-height);
+    font-weight: var(--_label-text-weight);
 
     // Firefox draws a dotted border around focused buttons unless specifically overridden.
     &::-moz-focus-inner {

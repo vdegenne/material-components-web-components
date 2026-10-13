@@ -4,40 +4,49 @@
 //
 
 // go/keep-sorted start
-@use '../../internal/sass/theme';
-@use './md-comp-icon';
+@use 'sass:list';
+@use 'sass:map';
+// go/keep-sorted end
+// go/keep-sorted start
+@use '../../tokens';
 // go/keep-sorted end
 
-$_custom-property-prefix: 'icon';
-
 @mixin theme($tokens) {
-  $tokens: theme.validate-theme(md-comp-icon.values(), $tokens);
-  $tokens: theme.create-theme-vars($tokens, $_custom-property-prefix);
+  $supported-tokens: tokens.$md-comp-icon-supported-tokens;
 
-  @include theme.emit-theme-vars($tokens);
+  @each $token, $value in $tokens {
+    @if list.index($supported-tokens, $token) == null {
+      @error 'Token `#{$token}` is not a supported token.';
+    }
+
+    @if $value {
+      --md-icon-#{$token}: #{$value};
+    }
+  }
 }
 
 @mixin styles() {
-  $tokens: md-comp-icon.values();
-  $tokens: theme.create-theme-vars($tokens, $_custom-property-prefix);
+  $tokens: tokens.md-comp-icon-values();
+  @each $token, $value in $tokens {
+    $tokens: map.set($tokens, $token, var(--md-icon-#{$token}, #{$value}));
+  }
 
   :host {
-    @each $token, $value in $tokens {
-      --_#{$token}: #{$value};
-    }
-
+    font-size: map.get($tokens, 'size');
+    width: map.get($tokens, 'size');
+    height: map.get($tokens, 'size');
+    color: inherit;
+    font-variation-settings: inherit;
+    font-weight: 400;
+    font-family: map.get($tokens, 'font');
     display: inline-flex;
-    color: var(--_color);
-    font-family: var(--_font);
-    font-weight: var(--_weight);
     font-style: normal;
-    font-size: var(--_size);
-    font-variation-settings: var(--_font-variation-settings);
     line-height: 1;
     // Avoid displaying overflowing text if font ligatures have not loaded.
     overflow: hidden;
     letter-spacing: normal;
     text-transform: none;
+    user-select: none;
     white-space: nowrap;
     word-wrap: normal;
 
@@ -54,7 +63,7 @@ $_custom-property-prefix: 'icon';
   }
 
   ::slotted(*) {
-    height: var(--_size);
-    width: var(--_size);
+    height: 100%;
+    width: 100%;
   }
 }

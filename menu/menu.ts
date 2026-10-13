@@ -6,13 +6,13 @@
 
 import {customElement} from 'lit/decorators.js';
 
-import {styles as forcedColors} from './internal/forced-colors-styles.css.js';
 import {Menu} from './internal/menu.js';
 import {styles} from './internal/menu-styles.css.js';
 
-export {ListItem} from '../list/internal/listitem/list-item.js';
-export {Corner, DefaultFocusState} from './internal/menu.js';
-export {CloseMenuEvent, DeactivateItemsEvent, MenuItem} from './internal/shared.js';
+export {type ListItem} from '../list/internal/list-navigation-helpers.js';
+export {type MenuItem} from './internal/controllers/menuItemController.js';
+export {type CloseMenuEvent, FocusState, type Menu} from './internal/controllers/shared.js';
+export {Corner} from './internal/menu.js';
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -38,23 +38,30 @@ declare global {
  * ```html
  * <div style="position:relative;">
  *   <button
- *       class="anchor"
- *       ${ref(anchorRef)}
+ *       id="anchor"
  *       @click=${() => this.menuRef.value.show()}>
  *     Click to open menu
  *   </button>
  *   <!--
  *     `has-overflow` is required when using a submenu which overflows the
- *     menu's contents
+ *     menu's contents.
+ *
+ *     Additionally, `anchor` ingests an idref which do not pass through shadow
+ *     roots. You can also set `.anchorElement` to an element reference if
+ *     necessary.
  *   -->
- *   <md-menu has-overflow ${ref(menuRef)} ${(el) => el.anchor =
- * anchorRef.value}> <md-menu-item header="This is a header"></md-menu-item>
- *     <md-sub-menu-item header="this is a submenu item">
- *       <md-menu slot="submenu">
- *         <md-menu-item
- *           header="This is an item inside a submenu"></md-menu-item>
+ *   <md-menu anchor="anchor" has-overflow ${ref(menuRef)}>
+ *     <md-menu-item headline="This is a headline"></md-menu-item>
+ *     <md-sub-menu>
+ *       <md-menu-item
+ *           slot="item"
+ *           headline="this is a submenu item">
+ *       </md-menu-item>
+ *       <md-menu slot="menu">
+ *         <md-menu-item headline="This is an item inside a submenu">
+ *         </md-menu-item>
  *       </md-menu>
- *     </md-sub-menu-item>
+ *     </md-sub-menu>
  *   </md-menu>
  * </div>
  * ```
@@ -64,5 +71,5 @@ declare global {
  */
 @customElement('md-menu')
 export class MdMenu extends Menu {
-  static override styles = [styles, forcedColors];
+  static override styles = [styles];
 }

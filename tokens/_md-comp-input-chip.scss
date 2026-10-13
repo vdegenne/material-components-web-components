@@ -7,13 +7,13 @@
 @use 'sass:map';
 // go/keep-sorted end
 // go/keep-sorted start
+@use './internal/validate';
 @use './md-sys-color';
 @use './md-sys-elevation';
 @use './md-sys-shape';
 @use './md-sys-state';
 @use './md-sys-typescale';
-@use './v0_172/md-comp-input-chip';
-@use './values';
+@use './v0_192/md-comp-input-chip';
 // go/keep-sorted end
 
 $supported-tokens: (
@@ -42,10 +42,15 @@ $supported-tokens: (
   'hover-state-layer-color',
   'hover-state-layer-opacity',
   'hover-trailing-icon-color',
+  'icon-label-space',
   'icon-size',
   'label-text-color',
-  'label-text-type',
+  'label-text-font',
+  'label-text-line-height',
+  'label-text-size',
+  'label-text-weight',
   'leading-icon-color',
+  'leading-space',
   'outline-color',
   'outline-width',
   'pressed-label-text-color',
@@ -72,6 +77,9 @@ $supported-tokens: (
   'selected-pressed-trailing-icon-color',
   'selected-trailing-icon-color',
   'trailing-icon-color',
+  'trailing-space',
+  'with-leading-icon-leading-space',
+  'with-trailing-icon-trailing-space',
   // go/keep-sorted end
 );
 
@@ -86,11 +94,8 @@ $unsupported-tokens: (
   'dragged-trailing-icon-color',
   'focus-state-layer-color',
   'focus-state-layer-opacity',
-  'label-text-font',
-  'label-text-line-height',
-  'label-text-size',
   'label-text-tracking',
-  'label-text-weight',
+  'label-text-type',
   'selected-dragged-label-text-color',
   'selected-dragged-leading-icon-color',
   'selected-dragged-state-layer-color',
@@ -111,10 +116,19 @@ $_default: (
 );
 
 @function values($deps: $_default, $exclude-hardcoded-values: false) {
-  $tokens: values.validate(
+  $tokens: validate.values(
     md-comp-input-chip.values($deps, $exclude-hardcoded-values),
     $supported-tokens: $supported-tokens,
     $unsupported-tokens: $unsupported-tokens,
+    $new-tokens: (
+      'leading-space': if($exclude-hardcoded-values, null, 16px),
+      'trailing-space': if($exclude-hardcoded-values, null, 16px),
+      'icon-label-space': if($exclude-hardcoded-values, null, 8px),
+      'with-leading-icon-leading-space':
+        if($exclude-hardcoded-values, null, 8px),
+      'with-trailing-icon-trailing-space':
+        if($exclude-hardcoded-values, null, 8px),
+    ),
     $renamed-tokens: (
       // Remove "unselected-*" prefix (b/275577569)
       'disabled-unselected-outline-color': 'disabled-outline-color',
@@ -188,14 +202,6 @@ $_default: (
       'with-trailing-icon-unselected-pressed-trailing-icon-color':
         'pressed-trailing-icon-color',
       'with-trailing-icon-unselected-trailing-icon-color': 'trailing-icon-color'
-    )
-  );
-
-  // TODO(b/271876162): remove when tokens compiler emits typescale tokens
-  $tokens: map.merge(
-    $tokens,
-    (
-      'label-text-type': map.get($deps, 'md-sys-typescale', 'label-large'),
     )
   );
 

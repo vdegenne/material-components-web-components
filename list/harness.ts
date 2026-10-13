@@ -24,7 +24,7 @@ const NAVIGABLE_KEYS = {
  * MdList and should be dispatched by yourself.
  */
 export type HandledListKeys =
-    typeof NAVIGABLE_KEYS[keyof typeof NAVIGABLE_KEYS];
+  (typeof NAVIGABLE_KEYS)[keyof typeof NAVIGABLE_KEYS];
 
 /**
  * Test harness for list.
@@ -35,13 +35,14 @@ export class ListHarness extends Harness<List> {
    */
   protected override async getInteractiveElement() {
     await this.element.updateComplete;
-    return (await this.getItems())[0].getInteractiveElement();
+    return this.element as List;
   }
 
   /** @return List item harnesses. */
   getItems() {
     return this.element.items.map(
-        (item) => new ListItemHarness(item as ListItemEl));
+      (item) => new ListItemHarness(item as ListItemEl),
+    );
   }
 
   /**
@@ -60,8 +61,7 @@ export class ListHarness extends Harness<List> {
    * @param key The key to dispatch on the list.
    */
   override async keypress(key: string, init = {} as KeyboardEventInit) {
-    const nativeList = this.element.renderRoot.querySelector('ul')!;
     init = {code: key, ...init};
-    this.simulateKeypress(nativeList, key, init);
+    await super.keypress(key, init);
   }
 }

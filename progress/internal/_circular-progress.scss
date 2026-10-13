@@ -11,7 +11,7 @@
 // go/keep-sorted end
 
 @mixin theme($tokens) {
-  $supported-tokens: tokens.$md-comp-circular-progress-indicator-supported-tokens;
+  $supported-tokens: tokens.$md-comp-circular-progress-supported-tokens;
   @each $token, $value in $tokens {
     @if list.index($supported-tokens, $token) == null {
       @error 'Token `#{$token}` is not a supported token.';
@@ -24,8 +24,10 @@
 }
 
 @mixin styles() {
-  $tokens: tokens.md-comp-circular-progress-indicator-values();
+  $tokens: tokens.md-comp-circular-progress-values();
 
+  // If changing this value, make sure to change $size-without-padding in the
+  // circular-progress tokens.
   $container-padding: 4px;
 
   // note, these value come from the m2 version but match current gm3 values.
@@ -53,8 +55,8 @@
 
     display: inline-flex;
     vertical-align: middle;
-    min-block-size: var(--_size);
-    min-inline-size: var(--_size);
+    width: var(--_size);
+    height: var(--_size);
     position: relative;
     align-items: center;
     justify-content: center;
@@ -80,7 +82,7 @@
   .circle,
   svg,
   .track,
-  .progress {
+  .active-track {
     position: absolute;
     inset: 0;
   }
@@ -100,7 +102,7 @@
     fill: transparent;
   }
 
-  .progress {
+  .active-track {
     // note, these value come from the m2 version but match current gm3 values.
     transition: stroke-dashoffset 500ms cubic-bezier(0, 0, 0.2, 1);
     stroke: var(--_active-indicator-color);
@@ -162,8 +164,8 @@
     animation-delay: calc(-0.5 * $arc-duration), 0ms;
   }
 
-  @media screen and (forced-colors: active) {
-    .progress {
+  @media (forced-colors: active) {
+    .active-track {
       stroke: CanvasText;
     }
 

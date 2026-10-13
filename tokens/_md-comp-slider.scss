@@ -7,13 +7,13 @@
 @use 'sass:map';
 // go/keep-sorted end
 // go/keep-sorted start
+@use './internal/validate';
 @use './md-sys-color';
 @use './md-sys-elevation';
 @use './md-sys-shape';
 @use './md-sys-state';
 @use './md-sys-typescale';
-@use './v0_172/md-comp-slider';
-@use './values';
+@use './v0_192/md-comp-slider';
 // go/keep-sorted end
 
 $supported-tokens: (
@@ -42,8 +42,11 @@ $supported-tokens: (
   'inactive-track-shape',
   'label-container-color',
   'label-container-height',
-  'label-label-text-color',
-  'label-label-text-type',
+  'label-text-color',
+  'label-text-font',
+  'label-text-line-height',
+  'label-text-size',
+  'label-text-weight',
   'pressed-handle-color',
   'pressed-state-layer-color',
   'pressed-state-layer-opacity',
@@ -57,6 +60,25 @@ $supported-tokens: (
   // go/keep-sorted end
 );
 
+$unsupported-tokens: (
+  'disabled-handle-opacity',
+  'label-container-elevation',
+  'label-text-type',
+  'label-text-tracking',
+  'track-elevation',
+  // for efficiency, tick marks are rendered as radial-gradients and
+  // have more limited customization
+  'with-tick-marks-container-shape',
+  // Due to how opacity is multiplied together in the browser, using
+  // these tokens results in low contrast tick marks.
+  'with-tick-marks-active-container-opacity',
+  'with-tick-marks-disabled-container-opacity',
+  'with-tick-marks-inactive-container-opacity',
+  // focus tokens no longer used.
+  'focus-state-layer-color',
+  'focus-state-layer-opacity'
+);
+
 $_default: (
   'md-sys-color': md-sys-color.values-light(),
   'md-sys-elevation': md-sys-elevation.values(),
@@ -65,39 +87,19 @@ $_default: (
   'md-sys-typescale': md-sys-typescale.values(),
 );
 
-$_unsupported-tokens: (
-  'disabled-handle-opacity',
-  'label-container-elevation',
-  'label-label-text-font',
-  'label-label-text-line-height',
-  'label-label-text-size',
-  'label-label-text-tracking',
-  'label-label-text-weight',
-  'track-elevation',
-  // for efficiency, tick marks are rendered as radial-gradients and
-  // have more limited customization
-  'with-tick-marks-active-container-opacity',
-  'with-tick-marks-container-shape',
-  'with-tick-marks-disabled-container-opacity',
-  'with-tick-marks-inactive-container-opacity',
-  // focus tokens no longer used.
-  'focus-state-layer-color',
-  'focus-state-layer-opacity'
-);
-
 @function values($deps: $_default, $exclude-hardcoded-values: false) {
-  $tokens: values.validate(
+  $tokens: validate.values(
     md-comp-slider.values($deps, $exclude-hardcoded-values),
     $supported-tokens: $supported-tokens,
-    $unsupported-tokens: $_unsupported-tokens
-  );
-
-  // TODO(b/271876162): remove when tokens compiler emits typescale tokens
-  $tokens: map.merge(
-    $tokens,
-    (
-      'label-label-text-type':
-        map.get($deps, 'md-sys-typescale', 'label-medium'),
+    $unsupported-tokens: $unsupported-tokens,
+    $renamed-tokens: (
+      'label-label-text-color': 'label-text-color',
+      'label-label-text-type': 'label-text-type',
+      'label-label-text-font': 'label-text-font',
+      'label-label-text-line-height': 'label-text-line-height',
+      'label-label-text-size': 'label-text-size',
+      'label-label-text-tracking': 'label-text-tracking',
+      'label-label-text-weight': 'label-text-weight',
     )
   );
 

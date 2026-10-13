@@ -17,7 +17,7 @@
 $_md-sys-motion: tokens.md-sys-motion-values();
 
 @mixin theme($tokens) {
-  $supported-tokens: tokens.$md-comp-radio-button-supported-tokens;
+  $supported-tokens: tokens.$md-comp-radio-supported-tokens;
 
   @each $token, $value in $tokens {
     @if list.index($supported-tokens, $token) == null {
@@ -31,141 +31,176 @@ $_md-sys-motion: tokens.md-sys-motion-values();
 }
 
 @mixin styles() {
-  $tokens: tokens.md-comp-radio-button-values();
+  $tokens: tokens.md-comp-radio-values();
+  @each $token, $value in $tokens {
+    $tokens: map.set($tokens, $token, var(--md-radio-#{$token}, #{$value}));
+  }
 
-  :host {
-    @each $token, $value in $tokens {
-      --_#{$token}: var(--md-radio-#{$token}, #{$value});
+  @layer {
+    :host {
+      display: inline-flex;
+      height: map.get($tokens, 'icon-size');
+      outline: none;
+      position: relative;
+      vertical-align: top; // Fix extra space when placed inside display: block
+      width: map.get($tokens, 'icon-size');
+      // Remove highlight color for mobile Safari
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
+
+      @include ripple.theme(
+        (
+          hover-color: map.get($tokens, 'hover-state-layer-color'),
+          hover-opacity: map.get($tokens, 'hover-state-layer-opacity'),
+          pressed-color: map.get($tokens, 'pressed-state-layer-color'),
+          pressed-opacity: map.get($tokens, 'pressed-state-layer-opacity'),
+        )
+      );
     }
 
-    @include ripple.theme(
-      (
-        hover-color: var(--_hover-state-layer-color),
-        hover-opacity: var(--_hover-state-layer-opacity),
-        pressed-color: var(--_pressed-state-layer-color),
-        pressed-opacity: var(--_pressed-state-layer-opacity),
-      )
-    );
-
-    display: inline-flex;
-    height: 48px;
-    position: relative;
-    vertical-align: top; // Fix extra space when placed inside display: block
-    width: 48px;
-    // Remove highlight color for mobile Safari
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  md-focus-ring {
-    @include focus-ring.theme(
-      (
-        'outward-offset': -2px,
-      )
-    );
-  }
-
-  .checked {
-    @include ripple.theme(
-      (
-        hover-color: var(--_selected-hover-state-layer-color),
-        hover-opacity: var(--_selected-hover-state-layer-opacity),
-        pressed-color: var(--_selected-pressed-state-layer-color),
-        pressed-opacity: var(--_selected-pressed-state-layer-opacity),
-      )
-    );
-  }
-
-  input,
-  .icon {
-    inset: 0;
-    margin: auto;
-    position: absolute;
-  }
-
-  input {
-    appearance: none;
-    outline: none;
-  }
-
-  md-ripple {
-    border-radius: 50%;
-    height: var(--_state-layer-size);
-    width: var(--_state-layer-size);
-  }
-
-  .icon {
-    fill: var(--_icon-color);
-    height: var(--_icon-size);
-    width: var(--_icon-size);
-  }
-
-  .outer.circle {
-    // Outline color enter/exit transition
-    transition: fill 50ms linear;
-  }
-
-  .inner.circle {
-    opacity: 0;
-    transform-origin: center;
-    transition: opacity 50ms linear;
-  }
-
-  .checked .icon {
-    fill: var(--_selected-icon-color);
-  }
-
-  .checked .inner.circle {
-    animation: inner-circle-grow 300ms
-      map.get($_md-sys-motion, easing-emphasized-decelerate);
-    opacity: 1;
-  }
-
-  @keyframes inner-circle-grow {
-    from {
-      transform: scale(0);
+    :host([disabled]) {
+      cursor: default;
     }
-    to {
-      transform: scale(1);
+
+    :host([touch-target='wrapper']) {
+      margin: max(0px, ((48px - map.get($tokens, 'icon-size')) / 2));
+    }
+
+    .container {
+      display: flex;
+      height: 100%;
+      place-content: center;
+      place-items: center;
+      width: 100%;
+    }
+
+    md-focus-ring {
+      height: 44px;
+      inset: unset;
+      width: 44px;
+    }
+
+    .checked {
+      @include ripple.theme(
+        (
+          hover-color: map.get($tokens, 'selected-hover-state-layer-color'),
+          hover-opacity: map.get($tokens, 'selected-hover-state-layer-opacity'),
+          pressed-color: map.get($tokens, 'selected-pressed-state-layer-color'),
+          pressed-opacity:
+            map.get($tokens, 'selected-pressed-state-layer-opacity'),
+        )
+      );
+    }
+
+    // <input> is also the touch target
+    input {
+      appearance: none;
+      height: 48px;
+      margin: 0;
+      position: absolute;
+      width: 48px;
+      cursor: inherit;
+    }
+
+    :host([touch-target='none']) input {
+      width: 100%;
+      height: 100%;
+    }
+
+    md-ripple {
+      border-radius: 50%;
+      height: map.get($tokens, 'state-layer-size');
+      inset: unset;
+      width: map.get($tokens, 'state-layer-size');
+    }
+
+    .icon {
+      fill: map.get($tokens, 'icon-color');
+      inset: 0;
+      position: absolute;
+    }
+
+    .outer.circle {
+      // Outline color enter/exit transition
+      transition: fill 50ms linear;
+    }
+
+    .inner.circle {
+      opacity: 0;
+      transform-origin: center;
+      transition: opacity 50ms linear;
+    }
+
+    .checked .icon {
+      fill: map.get($tokens, 'selected-icon-color');
+    }
+
+    .checked .inner.circle {
+      animation: inner-circle-grow 300ms
+        map.get($_md-sys-motion, easing-emphasized-decelerate);
+      opacity: 1;
+    }
+
+    @keyframes inner-circle-grow {
+      from {
+        transform: scale(0);
+      }
+      to {
+        transform: scale(1);
+      }
+    }
+
+    // Don't animate when disabled
+    :host([disabled]) .circle {
+      animation-duration: 0s;
+      transition-duration: 0s;
+    }
+
+    :host(:hover) .icon {
+      fill: map.get($tokens, 'hover-icon-color');
+    }
+
+    :host(:focus-within) .icon {
+      fill: map.get($tokens, 'focus-icon-color');
+    }
+
+    :host(:active) .icon {
+      fill: map.get($tokens, 'pressed-icon-color');
+    }
+
+    :host([disabled]) .icon {
+      fill: map.get($tokens, 'disabled-unselected-icon-color');
+      opacity: map.get($tokens, 'disabled-unselected-icon-opacity');
+    }
+
+    :host(:hover) .checked .icon {
+      fill: map.get($tokens, 'selected-hover-icon-color');
+    }
+
+    :host(:focus-within) .checked .icon {
+      fill: map.get($tokens, 'selected-focus-icon-color');
+    }
+
+    :host(:active) .checked .icon {
+      fill: map.get($tokens, 'selected-pressed-icon-color');
+    }
+
+    :host([disabled]) .checked .icon {
+      fill: map.get($tokens, 'disabled-selected-icon-color');
+      opacity: map.get($tokens, 'disabled-selected-icon-opacity');
     }
   }
 
-  // Don't animate when disabled
-  :host([disabled]) .circle {
-    animation-duration: 0s;
-    transition-duration: 0s;
-  }
+  @layer hcm {
+    @media (forced-colors: active) {
+      .icon {
+        fill: CanvasText;
+      }
 
-  :host(:hover) .icon {
-    fill: var(--_hover-icon-color);
-  }
-
-  :host(:focus-within) .icon {
-    fill: var(--_focus-icon-color);
-  }
-
-  :host(:active) .icon {
-    fill: var(--_pressed-icon-color);
-  }
-
-  :host([disabled]) .icon {
-    fill: var(--_disabled-unselected-icon-color);
-    opacity: var(--_disabled-unselected-icon-opacity);
-  }
-
-  :host(:hover) .checked .icon {
-    fill: var(--_selected-hover-icon-color);
-  }
-
-  :host(:focus-within) .checked .icon {
-    fill: var(--_selected-focus-icon-color);
-  }
-
-  :host(:active) .checked .icon {
-    fill: var(--_selected-pressed-icon-color);
-  }
-
-  :host([disabled]) .checked .icon {
-    fill: var(--_disabled-selected-icon-color);
-    opacity: var(--_disabled-selected-icon-opacity);
+      :host([disabled]) .icon {
+        fill: GrayText;
+        opacity: 1;
+      }
+    }
   }
 }

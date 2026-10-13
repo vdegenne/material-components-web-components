@@ -12,14 +12,14 @@ describe('aria', () => {
   describe('isAriaAttribute()', () => {
     it('should return true for aria value attributes', () => {
       expect(isAriaAttribute('aria-label'))
-          .withContext('aria-label input')
-          .toBeTrue();
+        .withContext('aria-label input')
+        .toBeTrue();
     });
 
     it('should return true for aria idref attributes', () => {
       expect(isAriaAttribute('aria-labelledby'))
-          .withContext('aria-labelledby input')
-          .toBeTrue();
+        .withContext('aria-labelledby input')
+        .toBeTrue();
     });
 
     it('should return false for role', () => {
@@ -37,8 +37,9 @@ describe('aria', () => {
     });
 
     it('should convert aria idref properties', () => {
-      expect(ariaPropertyToAttribute('ariaLabelledByElements' as ARIAProperty))
-          .toBe('aria-labelledby');
+      expect(
+        ariaPropertyToAttribute('ariaLabelledByElements' as ARIAProperty),
+      ).toBe('aria-labelledby');
     });
   });
 });

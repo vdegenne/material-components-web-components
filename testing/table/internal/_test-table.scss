@@ -10,7 +10,7 @@
 @use 'sass:map';
 // go/keep-sorted end
 // go/keep-sorted start
-@use '../../../internal/sass/theme';
+@use '../../../color/color';
 @use '../../../tokens';
 // go/keep-sorted end
 
@@ -22,19 +22,25 @@ $dark-theme: tokens.md-comp-test-table-values(
 );
 
 @mixin theme($tokens) {
-  $tokens: theme.validate-theme(tokens.md-comp-test-table-values(), $tokens);
-  $tokens: theme.create-theme-vars($tokens, 'test-table');
+  // $supported-tokens: tokens.$md-comp-test-table-supported-tokens;
 
-  @include theme.emit-theme-vars($tokens);
+  @each $token, $value in $tokens {
+    // @if list.index($supported-tokens, $token) == null {
+    //   @error 'Token `#{$token}` is not a supported token.';
+    // }
+
+    @if $value {
+      --md-test-table-#{$token}: #{$value};
+    }
+  }
 }
 
 @mixin styles() {
   $tokens: tokens.md-comp-test-table-values();
-  $tokens: theme.create-theme-vars($tokens, 'test-table');
 
   :host {
     @each $token, $value in $tokens {
-      --_#{$token}: #{$value};
+      --_#{$token}: var(--md-test-table-#{$token}, #{$value});
     }
 
     display: flex;
@@ -48,7 +54,7 @@ $dark-theme: tokens.md-comp-test-table-values(
   .md3-test-table__cell {
     border: 1px solid;
     padding: 16px;
-    position: relative;
+    position: var(--_cell-position);
 
     &::before {
       background-color: var(--_cell-color);
@@ -72,7 +78,10 @@ $dark-theme: tokens.md-comp-test-table-values(
     border-top: none;
     caption-side: bottom;
     color: var(--_header-cell-text-color);
-    font: var(--_header-cell-text-type);
+    font-family: var(--_header-cell-text-font);
+    font-size: var(--_header-cell-text-size);
+    line-height: var(--_header-cell-text-line-height);
+    font-weight: var(--_header-cell-text-weight);
     padding: 8px;
   }
 
@@ -80,7 +89,10 @@ $dark-theme: tokens.md-comp-test-table-values(
     align-items: center;
     color: var(--_cell-text-color);
     display: flex;
-    font: var(--_cell-text-type);
+    font-family: var(--_cell-text-font);
+    font-size: var(--_cell-text-size);
+    line-height: var(--_cell-text-line-height);
+    font-weight: var(--_cell-text-weight);
     justify-content: center;
   }
 
@@ -91,12 +103,6 @@ $dark-theme: tokens.md-comp-test-table-values(
   }
 
   :host([dark]) {
-    $dark: tokens.md-sys-color-values-dark(
-      $exclude-custom-properties: true,
-    );
-
-    @each $token, $value in $dark {
-      --md-sys-color-#{$token}: #{$value};
-    }
+    @include color.dark-theme;
   }
 }
